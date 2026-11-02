@@ -1,21 +1,15 @@
 """Generate the golden packs: tiny synthetic OSM files run through the full builder.
 
-Usage: python tests/golden/make_golden.py   (rewrites tests/golden/*.orpk and *.json)
+Usage, from the repository root: python -m tests.golden.make_golden   (rewrites tests/golden/*.orpk and *.json)
 """
 
-import sys
 import tempfile
 from pathlib import Path
 
 import osmium
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-
-from orpk.filter import osm_timestamp, read_ways  # noqa: E402
-from orpk.graph import build_graph  # noqa: E402
-from orpk.reader import Pack, dump_json  # noqa: E402
-from orpk.writer import encode  # noqa: E402
+from orpk.build import build_pack
+from orpk.reader import Pack, dump_json
 
 GOLDEN_DIR = Path(__file__).resolve().parent
 TIMESTAMP = "2026-01-01T00:00:00Z"
@@ -85,7 +79,19 @@ SCENARIOS = {
          (14, [28], {"highway": "residential"}),
          (15, [30, 99999], {"highway": "residential"}),  # missing node: fewer than two nodes
          (16, [32, 33], {"highway": "service", "service": "drive-through"}),
-         (17, [34, 35], {"highway": "service", "area": "no", "oneway": "true"})],  # kept, forward
+         (17, [34, 35], {"highway": "service", "area": "no", "oneway": "true"}),  # kept, forward
+         (18, [36, 37], {"highway": "tertiary", "junction": "roundabout", "oneway": "no"}),  # kept, both
+         (19, [38, 39], {"highway": "tertiary", "junction": "circular"})],  # kept, implied forward
+    ),
+    # A closed ring (loop edge a == b), a way touching itself (figure eight) and an end overshoot
+    # (the far point lies on the line through the end points but beyond the segment and must be kept).
+    "geometry": (
+        {1: (47.3, 8.6), 2: (47.3, 8.6013), 3: (47.3009, 8.6013), 4: (47.3009, 8.6),
+         11: (47.31, 8.6), 12: (47.31, 8.6013), 13: (47.3109, 8.6026), 14: (47.3091, 8.6026), 15: (47.31, 8.6039),
+         21: (47.32, 8.6), 22: (47.32, 8.6039), 23: (47.32, 8.6013)},
+        [(1, [1, 2, 3, 4, 1], {"highway": "residential"}),
+         (2, [11, 12, 13, 14, 12, 15], {"highway": "residential"}),
+         (3, [21, 22, 23], {"highway": "service"})],
     ),
     # No drivable road at all.
     "empty": (
@@ -111,8 +117,7 @@ def build(name, workdir):
     nodes, ways = SCENARIOS[name]
     src = Path(workdir) / f"{name}.osm.pbf"
     write_osm(src, nodes, ways)
-    data, _ = encode(build_graph(read_ways(src)), osm_timestamp(src))
-    return data
+    return build_pack(src)[0]
 
 
 def main():

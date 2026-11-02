@@ -1,44 +1,47 @@
-"""packs.json manifest for a release."""
+"""packs.json release manifest (FORMAT.md section 13)."""
 
 import datetime as dt
 import hashlib
-import json
 from pathlib import Path
 
+from .build import write_json
+from .codec import FORMAT_NAME, TIME_FORMAT
 from .reader import Pack
+
+GEOFABRIK = "https://download.geofabrik.de"
+
+
+def source_url(country):
+    """Geofabrik extract URL for a countries.json entry."""
+    return f"{GEOFABRIK}/{country['geofabrik']}-latest.osm.pbf"
 
 
 def iso(ts):
-    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if ts else None
+    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).strftime(TIME_FORMAT) if ts else None
 
 
-def pack_entry(path, country, name, source):
+def pack_entry(path, cid, country):
     data = Path(path).read_bytes()
     pack = Pack(data)
     return {
-        "country": country,
-        "name": name,
+        "country": cid,
+        "name": country["name"],
         "file": Path(path).name,
         "size": len(data),
         "sha256": hashlib.sha256(data).hexdigest(),
         "osm_timestamp": iso(pack.osm_timestamp),
-        "format": "ORPK",
+        "format": FORMAT_NAME,
         "format_version": f"{pack.version_major}.{pack.version_minor}",
         "junctions": pack.junction_count,
         "edges": pack.edge_count,
-        "source": source,
+        "source": source_url(country),
     }
 
 
 def write_manifest(out, release, countries, pack_dir):
-    """countries: {id: {"name", "geofabrik"}}; packs are <pack_dir>/<id>.orpk."""
-    packs = []
-    for cid in sorted(countries):
-        path = Path(pack_dir) / f"{cid}.orpk"
-        if path.exists():
-            c = countries[cid]
-            source = f"https://download.geofabrik.de/{c['geofabrik']}-latest.osm.pbf"
-            packs.append(pack_entry(path, cid, c["name"], source))
+    """countries: {id: {"name", "geofabrik"}}; packs are <pack_dir>/<id>.orpk, missing ones are skipped."""
+    packs = [pack_entry(Path(pack_dir) / f"{cid}.orpk", cid, countries[cid])
+             for cid in sorted(countries) if (Path(pack_dir) / f"{cid}.orpk").exists()]
     doc = {"release": release, "license": "ODbL-1.0", "packs": packs}
-    Path(out).write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    write_json(out, doc)
     return doc

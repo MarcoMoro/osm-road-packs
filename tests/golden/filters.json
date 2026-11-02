@@ -2,11 +2,11 @@
  "format": "ORPK",
  "version": "1.0",
  "osm_timestamp": 1767225600,
- "bbox": [47350000, 8500000, 47353400, 8501320],
+ "bbox": [47350000, 8500000, 47353800, 8501320],
  "cell_size_e6": 50000,
  "attribution": "Data © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright",
- "junction_count": 16,
- "edge_count": 8,
+ "junction_count": 20,
+ "edge_count": 10,
  "cells": [
   {
    "cell_lat": 947,
@@ -28,7 +28,11 @@
     [47352600, 8500000],
     [47352600, 8501320],
     [47353400, 8500000],
-    [47353400, 8501320]
+    [47353400, 8501320],
+    [47353600, 8500000],
+    [47353600, 8501320],
+    [47353800, 8500000],
+    [47353800, 8501320]
    ],
    "edges": [
     {
@@ -84,6 +88,20 @@
      "a": 14,
      "b": 15,
      "class": 13,
+     "oneway": 1,
+     "points": []
+    },
+    {
+     "a": 16,
+     "b": 17,
+     "class": 8,
+     "oneway": 0,
+     "points": []
+    },
+    {
+     "a": 18,
+     "b": 19,
+     "class": 8,
      "oneway": 1,
      "points": []
     }

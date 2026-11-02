@@ -4,7 +4,7 @@ import zlib
 
 from .codec import (
     ATTRIBUTION, CELL_SIZE_E6, HEADER, INDEX_ENTRY, MAGIC, VERSION_MAJOR, VERSION_MINOR,
-    cell_of, put_svarint, put_uvarint,
+    Extent, cell_of, pack_flags, put_points, put_svarint, put_uvarint,
 )
 
 
@@ -15,39 +15,28 @@ def deflate_raw(data, level):
 
 def encode(graph, osm_timestamp=0, attribution=ATTRIBUTION, level=9):
     """Return (pack bytes, stats dict)."""
-    cs = CELL_SIZE_E6
-    jcell = {nid: cell_of(lat, lon) for nid, (lat, lon) in graph.junctions.items()}
-    order = sorted(graph.junctions, key=lambda nid: (jcell[nid], graph.junctions[nid], nid))
-    jid = {nid: i for i, nid in enumerate(order)}
+    order = sorted((cell_of(lat, lon), lat, lon, nid) for nid, (lat, lon) in graph.junctions.items())
+    jid = {key[3]: i for i, key in enumerate(order)}
 
     cells = []  # (cell, first_junction, [junction coords], [edges])
-    for i, nid in enumerate(order):
-        c = jcell[nid]
+    for i, (c, lat, lon, _) in enumerate(order):
         if not cells or cells[-1][0] != c:
             cells.append((c, i, [], []))
-        cells[-1][2].append(graph.junctions[nid])
+        cells[-1][2].append((lat, lon))
     cell_pos = {c[0]: k for k, c in enumerate(cells)}
     for a, b, cls, oneway, inner in graph.edges:
-        cells[cell_pos[jcell[a]]][3].append((jid[a], jid[b], cls | (oneway << 4), inner))
+        ja = jid[a]
+        cells[cell_pos[order[ja][0]]][3].append((ja, jid[b], pack_flags(cls, oneway), inner))
 
-    lats = [lat for lat, _ in graph.junctions.values()]
-    lons = [lon for _, lon in graph.junctions.values()]
-    for e in graph.edges:
-        lats.extend(p[0] for p in e[4])
-        lons.extend(p[1] for p in e[4])
-    bbox = (min(lats), min(lons), max(lats), max(lons)) if lats else (0, 0, 0, 0)
-
+    extent = Extent()
     blocks = []
-    raw_total = 0
+    raw_total = interior = 0
     for (clat, clon), first, jcoords, edges in cells:
         out = bytearray()
         put_uvarint(len(jcoords), out)
-        plat, plon = clat * cs, clon * cs
-        for lat, lon in jcoords:
-            put_svarint(lat - plat, out)
-            put_svarint(lon - plon, out)
-            plat, plon = lat, lon
-        edges.sort(key=lambda e: (e[0], e[1], e[2], e[3]))
+        put_points(jcoords, (clat * CELL_SIZE_E6, clon * CELL_SIZE_E6), out)
+        cell_pts = list(jcoords)
+        edges.sort()
         put_uvarint(len(edges), out)
         prev_a = first
         for a, b, flags, inner in edges:
@@ -56,17 +45,16 @@ def encode(graph, osm_timestamp=0, attribution=ATTRIBUTION, level=9):
             prev_a = a
             out.append(flags)
             put_uvarint(len(inner), out)
-            plat, plon = jcoords[a - first]
-            for lat, lon in inner:
-                put_svarint(lat - plat, out)
-                put_svarint(lon - plon, out)
-                plat, plon = lat, lon
+            put_points(inner, jcoords[a - first], out)
+            cell_pts.extend(inner)
+            interior += len(inner)
+        extent.add(cell_pts)
         raw_total += len(out)
-        blocks.append(deflate_raw(bytes(out), level))
+        blocks.append(deflate_raw(out, level))
 
     attr = attribution.encode("utf-8")
     index_offset = HEADER.size + len(attr)
-    header = HEADER.pack(MAGIC, VERSION_MAJOR, VERSION_MINOR, 0, osm_timestamp, *bbox, cs,
+    header = HEADER.pack(MAGIC, VERSION_MAJOR, VERSION_MINOR, 0, osm_timestamp, *extent.bbox(), CELL_SIZE_E6,
                          len(cells), len(order), len(graph.edges), index_offset, len(attr)) + attr
     offset = index_offset + INDEX_ENTRY.size * len(cells)
     index = bytearray()
@@ -78,7 +66,7 @@ def encode(graph, osm_timestamp=0, attribution=ATTRIBUTION, level=9):
         "ways": graph.ways,
         "junctions": len(order),
         "edges": len(graph.edges),
-        "interior_points": sum(len(e[4]) for e in graph.edges),
+        "interior_points": interior,
         "cells": len(cells),
         "payload_raw_bytes": raw_total,
         "file_bytes": len(data),
