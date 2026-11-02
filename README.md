@@ -10,6 +10,11 @@ Packs are built monthly by GitHub Actions and attached to a dated release (`YYYY
 
 | Country | Id | Source extract | Size (2026-11-02) |
 |---|---|---|---|
+| Austria | `at` | Geofabrik `europe/austria` | 14.3 MB |
+| France | `fr` | Geofabrik `europe/france` | 101.2 MB |
+| Germany | `de` | Geofabrik `europe/germany` | 71.2 MB |
+| Italy | `it` | Geofabrik `europe/italy` | 59.6 MB |
+| Liechtenstein | `li` | Geofabrik `europe/liechtenstein` | 0.05 MB |
 | Switzerland | `ch` | Geofabrik `europe/switzerland` | 9.3 MB |
 
 Countries are configured in [`countries.json`](countries.json) (id, display name, Geofabrik path).
@@ -37,7 +42,7 @@ python -m orpk dump ch.orpk -o ch.json  # decoded JSON (large for a whole countr
 python -m orpk manifest --release 2026-11-02 --pack-dir . -o packs.json
 ```
 
-Building Switzerland takes about 40 s and a few GB of RAM on a desktop PC.
+The builder reads the extract twice and keeps node locations only for road nodes, so memory stays low: on a desktop PC Switzerland takes about 40 s and 2 GB of RAM, France (5.1 GB extract) about 5 min and 4.2 GB. That fits a standard GitHub-hosted runner.
 
 ## Tests and golden files
 
@@ -58,6 +63,7 @@ Verified 2026-11-02. Python dependencies are pinned with hashes in `requirements
 |---|---|---|
 | Python | 3.14.10 | python.org, actions/python-versions manifest |
 | osmium (pyosmium) | 4.3.2 (2026-10-18) | PyPI |
+| numpy | 2.5.4 (2026-10-10) | PyPI |
 | pytest | 9.2.0 (2026-10-27) | PyPI |
 | actions/checkout | v7.0.1, `3d3c42e5aac5ba805825da76410c181273ba90b1` | GitHub release tag |
 | actions/setup-python | v7.1.0, `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` | GitHub release tag |

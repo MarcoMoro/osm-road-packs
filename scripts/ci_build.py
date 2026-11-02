@@ -22,7 +22,7 @@ from orpk.reader import Pack
 
 ROOT = Path(__file__).resolve().parents[1]
 USER_AGENT = "osm-road-packs (+https://github.com/MarcoMoro/osm-road-packs)"
-FETCH_ATTEMPTS = 2  # a second try covers an extract replaced between the .md5 and the .pbf request
+FETCH_ATTEMPTS = 2  # a second try covers a mirror file replaced during the download
 
 
 def load_countries():
@@ -34,24 +34,28 @@ def open_url(url):
 
 
 def fetch(url, dest):
-    """Stream url to dest; return the md5 hex digest of the content."""
+    """Stream url to dest; return (final URL after redirects, md5 hex digest of the content)."""
     md5 = hashlib.md5()
     with open_url(url) as r, open(dest, "wb") as f:
+        final = r.geturl()
         while chunk := r.read(1 << 20):
             md5.update(chunk)
             f.write(chunk)
-    return md5.hexdigest()
+    return final, md5.hexdigest()
 
 
 def fetch_verified(url, dest):
-    """Download url with its .md5 sidecar; retry once on mismatch."""
+    """Download url and check it against the .md5 next to the file it redirected to; retry once on mismatch.
+
+    Geofabrik redirects -latest to a dated file or a mirror, and not every -latest has its own .md5.
+    """
     for attempt in range(1, FETCH_ATTEMPTS + 1):
-        with open_url(url + ".md5") as r:
+        final, actual = fetch(url, dest)
+        with open_url(final + ".md5") as r:
             expected = r.read().decode("ascii").split()[0].lower()
-        actual = fetch(url, dest)
         if actual == expected:
-            return
-        print(f"md5 mismatch for {url} (attempt {attempt}): {actual} != {expected}", flush=True)
+            return final
+        print(f"md5 mismatch for {final} (attempt {attempt}): {actual} != {expected}", flush=True)
     sys.exit(f"md5 check failed for {url}")
 
 
@@ -71,8 +75,8 @@ def cmd_build(args):
     for cid in select(countries, args.countries):
         url = source_url(countries[cid])
         pbf = downloads / f"{cid}.osm.pbf"
-        fetch_verified(url, pbf)
-        print(f"{cid}: downloaded {pbf.stat().st_size} bytes, md5 ok", flush=True)
+        final = fetch_verified(url, pbf)
+        print(f"{cid}: downloaded {final}, {pbf.stat().st_size} bytes, md5 ok", flush=True)
         data, stats = build_pack(pbf)
         (dist / f"{cid}.orpk").write_bytes(data)
         Pack(data).check()

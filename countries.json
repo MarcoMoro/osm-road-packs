@@ -1,3 +1,8 @@
 {
-  "ch": {"name": "Switzerland", "geofabrik": "europe/switzerland"}
+  "at": {"name": "Austria", "geofabrik": "europe/austria"},
+  "ch": {"name": "Switzerland", "geofabrik": "europe/switzerland"},
+  "de": {"name": "Germany", "geofabrik": "europe/germany"},
+  "fr": {"name": "France", "geofabrik": "europe/france"},
+  "it": {"name": "Italy", "geofabrik": "europe/italy"},
+  "li": {"name": "Liechtenstein", "geofabrik": "europe/liechtenstein"}
 }
