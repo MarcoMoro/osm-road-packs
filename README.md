@@ -6,34 +6,43 @@
 
 Compact, routable road packs built from OpenStreetMap country extracts.
 
-A pack holds the drivable road network of one country as a junction graph (junctions, road segments with simplified geometry, road class and oneway direction), split into 0.05 degree cells that are compressed individually. A reader can memory-map a pack and decode only the cells around a position, without unpacking the whole file. The format is called `ORPK` (OSM road pack) and is specified in [FORMAT.md](FORMAT.md).
+A pack holds the drivable road network of one country as a junction graph (junctions, road segments with simplified geometry, road class and oneway direction), split into 0.05 degree cells that are compressed individually.
+
+A reader can memory-map a pack and decode only the cells around a position, without unpacking the whole file.
+
+The format is called `ORPK` (OSM road pack) and is specified in [FORMAT.md](FORMAT.md).
 
 [![Video: OSM Road Packs in 26 seconds, rendered from the packs (click to play)](assets/osm-road-packs-video.jpg)](assets/osm-road-packs.mp4)
 
-Video (26 s): roads rendered from release `2026-11-02`. Music: Sascha Ende, [ende.app](https://ende.app/en), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (edited: tempo, length).
-
 ## Packs
 
-Packs are built monthly by GitHub Actions, one parallel job per country, and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13). A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete. A run fails instead of publishing a partial release (for example, a country newly added to `countries.json` must be part of the run).
+Packs are built monthly by GitHub Actions, one parallel job per country, and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13).
 
-| Country | Id | Source extract | Size (2026-11) |
-|---|---|---|---|
-| Austria | `at` | Geofabrik `europe/austria` | ~15 MB |
-| France | `fr` | Geofabrik `europe/france` | ~105 MB |
-| Germany | `de` | Geofabrik `europe/germany` | ~74 MB |
-| Italy | `it` | Geofabrik `europe/italy` | ~61 MB |
-| Liechtenstein | `li` | Geofabrik `europe/liechtenstein` | ~54 KB |
-| Switzerland | `ch` | Geofabrik `europe/switzerland` | ~10 MB |
+A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete.
+A run fails instead of publishing a partial release (for example, a country newly added to `countries.json` must be part of the run).
+
+| Country       | Id   | Source extract                   | Size (2026-11) |
+| ------------- | ---- | -------------------------------- | -------------- |
+| Austria       | `at` | Geofabrik `europe/austria`       | ~15 MB         |
+| France        | `fr` | Geofabrik `europe/france`        | ~105 MB        |
+| Germany       | `de` | Geofabrik `europe/germany`       | ~75 MB         |
+| Italy         | `it` | Geofabrik `europe/italy`         | ~60 MB         |
+| Liechtenstein | `li` | Geofabrik `europe/liechtenstein` | ~50 KB         |
+| Switzerland   | `ch` | Geofabrik `europe/switzerland`   | ~10 MB         |
 
 Countries are configured in [`countries.json`](countries.json) (id, display name, Geofabrik path).
 
 ## Content
 
-Roads with `highway` = `motorway`, `trunk`, `primary`, `secondary`, `tertiary` (each with `_link`), `unclassified`, `residential`, `living_street` and `service` (without parking aisles, driveways and drive-throughs). Ways tagged `access=no` are left out unless `motor_vehicle=yes/designated`; `access=private` ways are kept and flagged as private, so each consumer decides whether to use them; other restriction tags (`motor_vehicle=no`, `vehicle=no`, ...) are not evaluated. `area=yes` ways are left out. Oneway direction comes from `oneway`, implied for motorways and roundabouts unless `oneway=no`. Geometry is simplified with [Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) at 2 m. Details: FORMAT.md section 9.
+Roads with `highway` = `motorway`, `trunk`, `primary`, `secondary`, `tertiary` (each with `_link`), `unclassified`, `residential`, `living_street` and `service` (without parking aisles, driveways and drive-throughs).
+Ways tagged `access=no` are left out unless `motor_vehicle=yes/designated`. Ways tagged as `access=private` are kept and flagged as private, so each consumer decides whether to use them. Other restriction tags (`motor_vehicle=no`, `vehicle=no`, ...) are not evaluated and `area=yes` ways are left out.
+Oneway direction comes from `oneway`, implied for motorways and roundabouts unless `oneway=no`.
+
+Geometry is simplified with [Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) at 2 m - see more details in FORMAT.md section 9.
 
 ## Usage
 
-Requires Python 3.14 (verified with 3.14.10). Run commands from the repository root.
+Requires Python 3.14. Run commands from the repository root.
 
 ```sh
 python -m venv .venv
@@ -50,33 +59,36 @@ python -m orpk dump ch.orpk -o ch.json  # decoded JSON (large for a whole countr
 python -m orpk manifest --release 2026-11-02 --pack-dir . -o packs.json
 ```
 
-The builder reads the extract twice and keeps node locations only for road nodes, so memory stays low: on a desktop PC Switzerland takes about 40 s and 2 GB of RAM, France (5.1 GB extract) about 5 min and 3.8 GB. That fits a standard GitHub-hosted runner.
+The builder reads the extract twice and keeps node locations only for road nodes, so memory stays low.
+E.g. on a desktop computer Switzerland takes about 40s and 2 GB of RAM  and France (5.1 GB extract) about 5 min and 3.8 GB.
 
 ## Tests and golden files
 
-`tests/golden/` holds small packs built from synthetic OSM data (T junction, dual carriageway, roundabout, cell boundary crossings including negative coordinates, two parallel streets 150 m apart, one way per filter rule, loop edges and a simplification overshoot, an empty pack) plus their decoded JSON. They are the reference for other reader implementations.
+The folder `tests/golden/` holds small packs built from synthetic OSM data (T junction, dual carriageway, roundabout, cell boundary crossings incl. negative coordinates, two parallel streets 150m apart, one way per filter rule, loop edges and a simplification overshoot, an empty pack) plus their decoded JSON.
+They are the reference for other reader implementations.
 
 ```sh
 python -m pytest                      # rebuild goldens and compare, reader round trip, codec tests
 python -m tests.golden.make_golden    # regenerate goldens after an intended change
 ```
 
-Rebuilt packs are compared in canonical form (header, index without offsets, inflated cell payloads), because DEFLATE output differs between zlib implementations.
+Rebuilt packs are compared in canonical form (header, index w/o offsets, inflated cell payloads), because DEFLATE output differs between zlib implementations.
 
 ## Versions
 
-Verified 2026-11-02. Python dependencies are pinned with hashes in `requirements.txt` (including transitive ones); Dependabot proposes monthly updates for them and for the actions.
+Verified 2026-11-02. Python dependencies are pinned with hashes in `requirements.txt` (including transitive ones).
+Dependabot proposes monthly updates for them and for the actions.
 
-| Component | Version | Source |
-|---|---|---|
-| Python | 3.14.10 | python.org, actions/python-versions manifest |
-| osmium (pyosmium) | 4.3.2 (2026-10-18) | PyPI |
-| numpy | 2.5.4 (2026-10-10) | PyPI |
-| pytest | 9.2.0 (2026-10-27) | PyPI |
-| actions/checkout | v7.0.1, `3d3c42e5aac5ba805825da76410c181273ba90b1` | GitHub release tag |
-| actions/setup-python | v7.1.0, `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` | GitHub release tag |
-| actions/upload-artifact | v7.0.2, `cf430e030ddbb5b0abf93d22962f4752f3646cd9` | GitHub release tag |
-| actions/download-artifact | v8.0.2, `9000827ccba6bdab643e8b6fd33ac0654aef8333` | GitHub release tag |
+| Component                 | Version                                            | Source                                       |
+| ------------------------- | -------------------------------------------------- | -------------------------------------------- |
+| Python                    | 3.14.10                                            | python.org, actions/python-versions manifest |
+| osmium (pyosmium)         | 4.3.2 (2026-10-18)                                 | PyPI                                         |
+| numpy                     | 2.5.4 (2026-10-10)                                 | PyPI                                         |
+| pytest                    | 9.2.0 (2026-10-27)                                 | PyPI                                         |
+| actions/checkout          | v7.0.1, `3d3c42e5aac5ba805825da76410c181273ba90b1` | GitHub release tag                           |
+| actions/setup-python      | v7.1.0, `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` | GitHub release tag                           |
+| actions/upload-artifact   | v7.0.2, `cf430e030ddbb5b0abf93d22962f4752f3646cd9` | GitHub release tag                           |
+| actions/download-artifact | v8.0.2, `9000827ccba6bdab643e8b6fd33ac0654aef8333` | GitHub release tag                           |
 
 ## Licence
 
@@ -86,6 +98,7 @@ Data: the packs are derived from OpenStreetMap and licensed under the Open Datab
 
 > Data © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright
 
-Extracts by [Geofabrik](https://download.geofabrik.de/). See [NOTICE](NOTICE). The golden test packs use synthetic coordinates and contain no OpenStreetMap data.
+Extracts by [Geofabrik](https://download.geofabrik.de/). See [NOTICE](NOTICE).
+The golden test packs use synthetic coordinates and contain no OpenStreetMap data.
 
 The video in `assets/` shows roads from the packs (ODbL, as above) and uses "Happy Beats / Business Moves Vol. 9" by Sascha Ende ([ende.app](https://ende.app/en)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), sped up and shortened.
