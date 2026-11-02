@@ -12,7 +12,7 @@ A reader can memory-map a pack and decode only the cells around a position, with
 
 The format is called `ORPK` (OSM road pack) and is specified in [FORMAT.md](FORMAT.md).
 
-![OSM Road Packs: roads rendered from the packs](assets/osm-road-packs-video.jpg)
+https://github.com/user-attachments/assets/e2632ed3-9704-4f89-a79d-70a8ab4007fe
 
 ## Packs
 
