@@ -15,9 +15,9 @@ import sys
 import urllib.request
 from pathlib import Path
 
-from orpk.build import build_pack, write_json
+from orpk.build import build_pack
 from orpk.codec import ATTRIBUTION, FORMAT_NAME
-from orpk.manifest import source_url, write_manifest
+from orpk.manifest import source_url, write_json, write_manifest
 from orpk.reader import Pack
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,11 +29,14 @@ def load_countries():
     return json.loads((ROOT / "countries.json").read_text(encoding="utf-8"))
 
 
+def open_url(url):
+    return urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=60)
+
+
 def fetch(url, dest):
     """Stream url to dest; return the md5 hex digest of the content."""
     md5 = hashlib.md5()
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as r, open(dest, "wb") as f:
+    with open_url(url) as r, open(dest, "wb") as f:
         while chunk := r.read(1 << 20):
             md5.update(chunk)
             f.write(chunk)
@@ -43,8 +46,7 @@ def fetch(url, dest):
 def fetch_verified(url, dest):
     """Download url with its .md5 sidecar; retry once on mismatch."""
     for attempt in range(1, FETCH_ATTEMPTS + 1):
-        req = urllib.request.Request(url + ".md5", headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with open_url(url + ".md5") as r:
             expected = r.read().decode("ascii").split()[0].lower()
         actual = fetch(url, dest)
         if actual == expected:
@@ -95,24 +97,19 @@ def free_tag():
 
 
 def carry_over(countries, dist):
-    """Copy packs not built in this run from the latest release, so every release is complete."""
+    """Copy packs not built in this run from the latest release, so every release is complete.
+
+    Any failure (no previous release, pack missing there, gh error) stops the run: a country new in
+    countries.json needs a build run that includes it.
+    """
     missing = [cid for cid in sorted(countries) if not (dist / f"{cid}.orpk").exists()]
     if not missing:
         return None, []
-    latest = gh("release", "view", "--json", "tagName", "-q", ".tagName", check=False)
-    if latest.returncode != 0:
-        print("no previous release to carry packs over from", flush=True)
-        return None, []
-    tag = latest.stdout.strip()
-    carried = []
+    tag = gh("release", "view", "--json", "tagName", "-q", ".tagName").stdout.strip()
     for cid in missing:
-        r = gh("release", "download", tag, "-p", f"{cid}.orpk", "-D", str(dist), check=False)
-        if r.returncode == 0:
-            Pack.open(dist / f"{cid}.orpk").check()
-            carried.append(cid)
-        else:
-            print(f"{cid}: not in release {tag}, left out", flush=True)
-    return tag, carried
+        gh("release", "download", tag, "-p", f"{cid}.orpk", "-D", str(dist))
+        Pack.open(dist / f"{cid}.orpk").check()
+    return tag, missing
 
 
 def notes(doc, carried_from, carried):

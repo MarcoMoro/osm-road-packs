@@ -6,12 +6,13 @@ import json
 import sys
 from pathlib import Path
 
-from .build import build_pack, write_json
-from .manifest import write_manifest
+from .manifest import write_json, write_manifest
 from .reader import Pack, PackError, dump_json
 
 
 def cmd_build(args):
+    from .build import build_pack  # imported here so check, dump and manifest work without osmium
+
     ts = None
     if args.osm_timestamp:
         when = dt.datetime.fromisoformat(args.osm_timestamp)

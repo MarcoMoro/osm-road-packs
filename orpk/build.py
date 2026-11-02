@@ -1,8 +1,6 @@
 """Build pipeline: OSM extract -> filtered ways -> junction graph -> pack bytes."""
 
-import json
 import time
-from pathlib import Path
 
 from .filter import osm_timestamp, read_ways
 from .graph import build_graph
@@ -17,7 +15,3 @@ def build_pack(extract, eps_m=2.0, timestamp=None):
     data, stats = encode(build_graph(read_ways(extract), eps_m), timestamp)
     stats["seconds"] = round(time.time() - t0, 1)
     return data, stats
-
-
-def write_json(path, obj):
-    Path(path).write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8", newline="\n")

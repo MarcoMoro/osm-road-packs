@@ -2,13 +2,17 @@
 
 import datetime as dt
 import hashlib
+import json
 from pathlib import Path
 
-from .build import write_json
 from .codec import FORMAT_NAME, TIME_FORMAT
 from .reader import Pack
 
 GEOFABRIK = "https://download.geofabrik.de"
+
+
+def write_json(path, obj):
+    Path(path).write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def source_url(country):
@@ -39,9 +43,11 @@ def pack_entry(path, cid, country):
 
 
 def write_manifest(out, release, countries, pack_dir):
-    """countries: {id: {"name", "geofabrik"}}; packs are <pack_dir>/<id>.orpk, missing ones are skipped."""
-    packs = [pack_entry(Path(pack_dir) / f"{cid}.orpk", cid, countries[cid])
-             for cid in sorted(countries) if (Path(pack_dir) / f"{cid}.orpk").exists()]
+    """countries: {id: {"name", "geofabrik"}}; every <pack_dir>/<id>.orpk must exist (releases are complete)."""
+    missing = [cid for cid in sorted(countries) if not (Path(pack_dir) / f"{cid}.orpk").exists()]
+    if missing:
+        raise FileNotFoundError(f"packs missing in {pack_dir}: {', '.join(missing)}")
+    packs = [pack_entry(Path(pack_dir) / f"{cid}.orpk", cid, countries[cid]) for cid in sorted(countries)]
     doc = {"release": release, "license": "ODbL-1.0", "packs": packs}
     write_json(out, doc)
     return doc

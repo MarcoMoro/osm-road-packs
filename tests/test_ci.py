@@ -19,11 +19,18 @@ def test_select_validates_ids():
             select(COUNTRIES, bad)
 
 
-def test_manifest_and_notes(tmp_path):
+def test_manifest_requires_every_configured_pack(tmp_path):
     (tmp_path / "ch.orpk").write_bytes((make_golden.GOLDEN_DIR / "t_junction.orpk").read_bytes())
+    with pytest.raises(FileNotFoundError, match="li"):
+        write_manifest(tmp_path / "packs.json", "2026-11-02", COUNTRIES, tmp_path)
+
+
+def test_manifest_and_notes(tmp_path):
+    for cid in COUNTRIES:
+        (tmp_path / f"{cid}.orpk").write_bytes((make_golden.GOLDEN_DIR / "t_junction.orpk").read_bytes())
     doc = write_manifest(tmp_path / "packs.json", "2026-11-02", COUNTRIES, tmp_path)
     assert json.loads((tmp_path / "packs.json").read_text(encoding="utf-8")) == doc
-    (entry,) = doc["packs"]
+    entry, _ = doc["packs"]
     assert entry["country"] == "ch" and entry["file"] == "ch.orpk"
     assert entry["osm_timestamp"] == "2026-01-01T00:00:00Z" and entry["format_version"] == "1.0"
     assert entry["source"] == "https://download.geofabrik.de/europe/switzerland-latest.osm.pbf"

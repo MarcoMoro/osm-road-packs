@@ -6,7 +6,7 @@ A pack holds the drivable road network of one country as a junction graph (junct
 
 ## Packs
 
-Packs are built monthly by GitHub Actions and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13). A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete.
+Packs are built monthly by GitHub Actions and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13). A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete. A run fails instead of publishing a partial release (for example, a country newly added to `countries.json` must be part of the run).
 
 | Country | Id | Source extract | Size (2026-11-02) |
 |---|---|---|---|

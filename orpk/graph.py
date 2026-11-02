@@ -18,9 +18,9 @@ def build_graph(ways, eps_m=2.0):
     ways = list(ways)
     use = Counter()
     for _, _, pts in ways:
-        last = len(pts) - 1
-        for i, (nid, _, _) in enumerate(pts):
-            use[nid] += 2 if i in (0, last) else 1
+        use.update([p[0] for p in pts])
+        use[pts[0][0]] += 1  # end nodes count twice, so they are always junctions
+        use[pts[-1][0]] += 1
 
     g = Graph(ways=len(ways))
     for cls, oneway, pts in ways:
