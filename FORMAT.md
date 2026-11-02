@@ -113,14 +113,14 @@ uvarint  edge_count_in_cell
 repeat edge_count_in_cell:
   uvarint  d_a                         a = prev_a + d_a; prev_a starts at first_junction
   svarint  d_b                         b = a + d_b
-  u8       flags                       bits 0-3 class, bits 4-5 oneway, bits 6-7 reserved (0)
+  u8       flags                       bits 0-3 class, bits 4-5 oneway, bit 6 private, bit 7 reserved (0)
   uvarint  point_count                 number of interior points
   repeat point_count:
     svarint  d_lat
     svarint  d_lon
 ```
 
-The payload MUST end exactly after the last edge; trailing bytes are an error.
+The payload MUST end exactly after the last edge; trailing bytes are an error. An inflated payload MUST NOT exceed 16 MiB (16777216 bytes); readers MAY reject larger blocks without inflating them completely (protection against decompression bombs; the largest cell of the published packs is below 64 KB).
 
 **Junction coordinates** are delta-coded: the first junction's deltas are relative to the cell origin `(cell_lat * cell_size_e6, cell_lon * cell_size_e6)`, each following junction relative to the previous junction of the same cell.
 
@@ -193,7 +193,7 @@ A reader SHOULD check, and the reference reader (`python -m orpk check`) checks:
 
 1. `magic`, `version_major == 1`, `cell_size_e6 > 0`; `58 + attribution_len <= file size` and `attribution` is valid UTF-8; `index_offset >= 58 + attribution_len`; `index_offset + 24 * cell_count <= file size`.
 2. Index entries strictly ascending by `(cell_lat, cell_lon)`; blocks contiguous from `index_offset + 24 * cell_count` to end of file; `first_junction[0] == 0`, strictly increasing, and the last entry's `first_junction < junction_count`.
-3. Each block inflates completely, its junction count matches the id range, and the payload has no trailing bytes.
+3. Each block inflates completely to at most 16 MiB, its junction count matches the id range, and the payload has no trailing bytes.
 4. Every junction lies in the cell of its index entry.
 5. Every edge starts in its block's cell, `b < junction_count`, `d_a >= 0`, and `a == b` only with interior points.
 6. Sums of junctions and edges equal `junction_count` and `edge_count`.

@@ -5,7 +5,7 @@ import zlib
 import numpy as np
 
 from .codec import (
-    ATTRIBUTION, CELL_SIZE_E6, HEADER, INDEX_ENTRY, MAGIC, VERSION_MAJOR, VERSION_MINOR,
+    ATTRIBUTION, CELL_SIZE_E6, HEADER, INDEX_ENTRY, MAGIC, MAX_PAYLOAD, VERSION_MAJOR, VERSION_MINOR,
     cell_of, put_points, put_svarint, put_uvarint,
 )
 
@@ -82,6 +82,8 @@ def encode(graph, osm_timestamp=0, attribution=ATTRIBUTION, level=9):
             out.append(f)
             put_uvarint(c, out)
             put_points(inner_points(graph, o, c), jcoords[a - first], out)
+        if len(out) > MAX_PAYLOAD:
+            raise ValueError(f"cell ({cell_lat}, {cell_lon}) payload of {len(out)} bytes exceeds {MAX_PAYLOAD}")
         raw_total += len(out)
         blocks.append(deflate_raw(out, level))
 

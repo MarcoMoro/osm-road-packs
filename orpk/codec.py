@@ -7,6 +7,7 @@ FORMAT_NAME = MAGIC.decode("ascii")
 VERSION_MAJOR = 1
 VERSION_MINOR = 1
 CELL_SIZE_E6 = 50_000
+MAX_PAYLOAD = 1 << 24  # inflated bytes per cell block (FORMAT.md section 7)
 ATTRIBUTION = "Data © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright"
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 

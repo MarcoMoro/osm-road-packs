@@ -2,9 +2,9 @@ import json
 
 import pytest
 
-import make_golden
 from orpk.codec import CLASS_ID, ONEWAY_BACKWARD, ONEWAY_BOTH, ONEWAY_FORWARD
 from orpk.reader import Pack
+from tests.golden import make_golden
 
 GOLDEN = make_golden.GOLDEN_DIR
 NAMES = sorted(make_golden.SCENARIOS)

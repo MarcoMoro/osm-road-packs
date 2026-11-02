@@ -18,5 +18,10 @@ offer the derived database under the ODbL. This repository's builder (the code
 that produces the packs from the extract) is published alongside, so every
 pack can be reproduced from its source extract.
 
+The video in assets/ shows roads from the packs (ODbL, as above) and uses
+"Happy Beats / Business Moves Vol. 9" by Sascha Ende (https://ende.app/en),
+licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/),
+sped up and shortened.
+
 Note: the golden test packs are built from synthetic, hand-written coordinates
 and contain no OpenStreetMap data.

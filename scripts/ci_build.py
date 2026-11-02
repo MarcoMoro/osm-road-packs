@@ -30,7 +30,12 @@ def load_countries():
 
 
 def open_url(url):
-    return urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=60)
+    """urlopen with our User-Agent; stops if a redirect left https (urllib follows https to http)."""
+    r = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=60)
+    if not r.geturl().startswith("https://"):
+        r.close()
+        sys.exit(f"refusing non-https URL {r.geturl()} (requested {url})")
+    return r
 
 
 def fetch(url, dest):

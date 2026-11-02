@@ -2,7 +2,7 @@
 
 # osm-road-packs
 
-[![Country packs](https://github.com/MarcoMoro/osm-road-packs/actions/workflows/build.yml/badge.svg)](https://github.com/MarcoMoro/osm-road-packs/actions/workflows/build.yml)
+[![Build packs](https://github.com/MarcoMoro/osm-road-packs/actions/workflows/build.yml/badge.svg)](https://github.com/MarcoMoro/osm-road-packs/actions/workflows/build.yml)
 
 Compact, routable road packs built from OpenStreetMap country extracts.
 
@@ -60,7 +60,7 @@ python -m orpk manifest --release 2026-11-02 --pack-dir . -o packs.json
 ```
 
 The builder reads the extract twice and keeps node locations only for road nodes, so memory stays low.
-E.g. on a desktop computer Switzerland takes about 40s and 2 GB of RAM  and France (5.1 GB extract) about 5 min and 3.8 GB.
+E.g. on a desktop computer Switzerland takes about 40s and 2 GB of RAM and France (5.1 GB extract) about 5 min and 3.8 GB.
 
 ## Tests and golden files
 

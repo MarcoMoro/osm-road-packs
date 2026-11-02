@@ -1,7 +1,7 @@
 import pytest
 
 from orpk.__main__ import main
-from orpk.codec import INDEX_ENTRY, Cursor, PackError, cell_of, put_svarint, put_uvarint
+from orpk.codec import INDEX_ENTRY, MAX_PAYLOAD, Cursor, PackError, cell_of, put_svarint, put_uvarint
 from orpk.filter import e7_to_e6
 from orpk.graph import build_graph
 from orpk.reader import Pack, dump_json
@@ -101,6 +101,16 @@ def test_check_detects_trailing_payload_bytes():
     data = bytearray(p.data[:offset]) + block
     INDEX_ENTRY.pack_into(data, p.index_offset, clat, clon, offset, len(block), first)
     with pytest.raises(PackError):
+        Pack(bytes(data)).check()
+
+
+def test_check_rejects_oversized_payload():
+    p = Pack(small_pack())
+    clat, clon, offset, _, first = p.index[0]
+    block = deflate_raw(bytes(MAX_PAYLOAD + 1), 9)
+    data = bytearray(p.data[:offset]) + block
+    INDEX_ENTRY.pack_into(data, p.index_offset, clat, clon, offset, len(block), first)
+    with pytest.raises(PackError, match="more than"):
         Pack(bytes(data)).check()
 
 

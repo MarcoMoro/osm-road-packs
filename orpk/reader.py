@@ -5,7 +5,7 @@ import zlib
 from typing import NamedTuple
 
 from .codec import (
-    FORMAT_NAME, HEADER, INDEX_ENTRY, MAGIC, VERSION_MAJOR, Cursor, Extent, PackError, cell_of, unpack_flags,
+    FORMAT_NAME, HEADER, INDEX_ENTRY, MAGIC, MAX_PAYLOAD, VERSION_MAJOR, Cursor, Extent, PackError, cell_of, unpack_flags,
 )
 
 __all__ = ["Cell", "Edge", "Pack", "PackError", "dump_json"]
@@ -14,9 +14,11 @@ __all__ = ["Cell", "Edge", "Pack", "PackError", "dump_json"]
 def inflate_raw(data):
     d = zlib.decompressobj(-15)
     try:
-        out = d.decompress(data) + d.flush()
+        out = d.decompress(data, MAX_PAYLOAD + 1)  # bounded, no flush(): it would inflate the rest
     except zlib.error as e:
         raise PackError(f"cell block does not inflate: {e}") from e
+    if len(out) > MAX_PAYLOAD:
+        raise PackError(f"cell block inflates to more than {MAX_PAYLOAD} bytes")
     if not d.eof or d.unused_data:
         raise PackError("cell block is not exactly one complete deflate stream")
     return out

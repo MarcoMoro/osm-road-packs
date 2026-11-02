@@ -2,10 +2,10 @@ import json
 
 import pytest
 
-import make_golden
 from orpk.codec import ATTRIBUTION
 from orpk.manifest import write_manifest
-from scripts.ci_build import notes, require_built, select
+from scripts.ci_build import notes, open_url, require_built, select
+from tests.golden import make_golden
 
 COUNTRIES = {"ch": {"name": "Switzerland", "geofabrik": "europe/switzerland"},
              "li": {"name": "Liechtenstein", "geofabrik": "europe/liechtenstein"}}
@@ -18,6 +18,23 @@ def test_select_validates_ids():
     for bad in ("de", "CH", "ch;rm"):
         with pytest.raises(SystemExit):
             select(COUNTRIES, bad)
+
+
+def test_open_url_refuses_redirect_to_http(monkeypatch):
+    class Response:
+        closed = False
+
+        def geturl(self):
+            return "http://mirror.example/x.osm.pbf"
+
+        def close(self):
+            self.closed = True
+
+    r = Response()
+    monkeypatch.setattr("urllib.request.urlopen", lambda *a, **k: r)
+    with pytest.raises(SystemExit, match="non-https"):
+        open_url("https://download.example/x.osm.pbf")
+    assert r.closed
 
 
 def test_release_requires_packs_built_in_this_run(tmp_path):
