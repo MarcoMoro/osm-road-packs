@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>osm-road-packs</title>
+  <rect width="256" height="256" rx="48" fill="#17594a"/>
+  <g stroke="#ffffff" stroke-opacity="0.12" stroke-width="2">
+    <path d="M85 24V232M171 24V232M24 85H232M24 171H232"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 200L92 150L168 126L218 60"/>
+    <path d="M92 150L80 54"/>
+    <path d="M168 126L212 202"/>
+  </g>
+  <g fill="#f2b33d" stroke="#17594a" stroke-width="6">
+    <circle cx="92" cy="150" r="16"/>
+    <circle cx="168" cy="126" r="16"/>
+  </g>
+</svg>

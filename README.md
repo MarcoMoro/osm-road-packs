@@ -1,4 +1,8 @@
+<p align="center"><img src="assets/banner.svg" alt="osm-road-packs" width="100%"></p>
+
 # osm-road-packs
+
+[![Country packs](https://github.com/MarcoMoro/osm-road-packs/actions/workflows/build.yml/badge.svg)](https://github.com/MarcoMoro/osm-road-packs/actions/workflows/build.yml)
 
 Compact, routable road packs built from OpenStreetMap country extracts.
 
@@ -8,20 +12,20 @@ A pack holds the drivable road network of one country as a junction graph (junct
 
 Packs are built monthly by GitHub Actions and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13). A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete. A run fails instead of publishing a partial release (for example, a country newly added to `countries.json` must be part of the run).
 
-| Country | Id | Source extract | Size (2026-11-02) |
+| Country | Id | Source extract | Size (2026-11) |
 |---|---|---|---|
-| Austria | `at` | Geofabrik `europe/austria` | 14.3 MB |
-| France | `fr` | Geofabrik `europe/france` | 101.2 MB |
-| Germany | `de` | Geofabrik `europe/germany` | 71.2 MB |
-| Italy | `it` | Geofabrik `europe/italy` | 59.6 MB |
-| Liechtenstein | `li` | Geofabrik `europe/liechtenstein` | 0.05 MB |
-| Switzerland | `ch` | Geofabrik `europe/switzerland` | 9.3 MB |
+| Austria | `at` | Geofabrik `europe/austria` | ~15 MB |
+| France | `fr` | Geofabrik `europe/france` | ~100 MB |
+| Germany | `de` | Geofabrik `europe/germany` | ~71 MB |
+| Italy | `it` | Geofabrik `europe/italy` | ~60 MB |
+| Liechtenstein | `li` | Geofabrik `europe/liechtenstein` | ~50 KB |
+| Switzerland | `ch` | Geofabrik `europe/switzerland` | ~10 MB |
 
 Countries are configured in [`countries.json`](countries.json) (id, display name, Geofabrik path).
 
 ## Content
 
-Roads with `highway` = `motorway`, `trunk`, `primary`, `secondary`, `tertiary` (each with `_link`), `unclassified`, `residential`, `living_street` and `service` (without parking aisles, driveways and drive-throughs). Ways tagged `access=no` or `access=private` are left out unless `motor_vehicle=yes/designated`; other restriction tags (`motor_vehicle=no`, `vehicle=no`, ...) are not evaluated. `area=yes` ways are left out. Oneway direction comes from `oneway`, implied for motorways and roundabouts unless `oneway=no`. Geometry is simplified with Douglas-Peucker at 2 m. Details: FORMAT.md section 9.
+Roads with `highway` = `motorway`, `trunk`, `primary`, `secondary`, `tertiary` (each with `_link`), `unclassified`, `residential`, `living_street` and `service` (without parking aisles, driveways and drive-throughs). Ways tagged `access=no` or `access=private` are left out unless `motor_vehicle=yes/designated`; other restriction tags (`motor_vehicle=no`, `vehicle=no`, ...) are not evaluated. `area=yes` ways are left out. Oneway direction comes from `oneway`, implied for motorways and roundabouts unless `oneway=no`. Geometry is simplified with [Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) at 2 m. Details: FORMAT.md section 9.
 
 ## Usage
 
