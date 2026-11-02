@@ -1,27 +1,32 @@
-"""CI glue: download extracts with md5 check, build and validate packs, write release notes.
+"""CI glue: download extracts with md5 check, build and validate packs, publish a release.
 
-  python scripts/ci_build.py build [--countries "ch at"]   (empty = all in countries.json)
-  python scripts/ci_build.py notes dist/packs.json > notes.md
+Run from the repository root:
+  python -m scripts.ci_build build [--countries "ch at"]   (empty = all in countries.json)
+  python -m scripts.ci_build release                       (needs gh and GH_TOKEN)
 """
 
 import argparse
+import datetime as dt
 import hashlib
 import json
 import re
+import subprocess
 import sys
 import urllib.request
 from pathlib import Path
 
+from orpk.build import build_pack, write_json
+from orpk.codec import ATTRIBUTION, FORMAT_NAME
+from orpk.manifest import source_url, write_manifest
+from orpk.reader import Pack
+
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-
-from orpk.filter import osm_timestamp, read_ways  # noqa: E402
-from orpk.graph import build_graph  # noqa: E402
-from orpk.reader import Pack  # noqa: E402
-from orpk.writer import encode  # noqa: E402
-
-GEOFABRIK = "https://download.geofabrik.de"
 USER_AGENT = "osm-road-packs (+https://github.com/MarcoMoro/osm-road-packs)"
+FETCH_ATTEMPTS = 2  # a second try covers an extract replaced between the .md5 and the .pbf request
+
+
+def load_countries():
+    return json.loads((ROOT / "countries.json").read_text(encoding="utf-8"))
 
 
 def fetch(url, dest):
@@ -35,6 +40,19 @@ def fetch(url, dest):
     return md5.hexdigest()
 
 
+def fetch_verified(url, dest):
+    """Download url with its .md5 sidecar; retry once on mismatch."""
+    for attempt in range(1, FETCH_ATTEMPTS + 1):
+        req = urllib.request.Request(url + ".md5", headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            expected = r.read().decode("ascii").split()[0].lower()
+        actual = fetch(url, dest)
+        if actual == expected:
+            return
+        print(f"md5 mismatch for {url} (attempt {attempt}): {actual} != {expected}", flush=True)
+    sys.exit(f"md5 check failed for {url}")
+
+
 def select(countries, wanted):
     ids = wanted.split() if wanted and wanted.strip() else sorted(countries)
     for cid in ids:
@@ -44,42 +62,86 @@ def select(countries, wanted):
 
 
 def cmd_build(args):
-    countries = json.loads((ROOT / "countries.json").read_text(encoding="utf-8"))
+    countries = load_countries()
     downloads, dist = Path(args.downloads), Path(args.dist)
     downloads.mkdir(exist_ok=True)
     dist.mkdir(exist_ok=True)
     for cid in select(countries, args.countries):
-        url = f"{GEOFABRIK}/{countries[cid]['geofabrik']}-latest.osm.pbf"
-        md5_path = downloads / f"{cid}.osm.pbf.md5"
-        fetch(url + ".md5", md5_path)
-        expected = md5_path.read_text(encoding="ascii").split()[0].lower()
+        url = source_url(countries[cid])
         pbf = downloads / f"{cid}.osm.pbf"
-        actual = fetch(url, pbf)
-        if actual != expected:
-            sys.exit(f"{cid}: md5 mismatch for {url}: {actual} != {expected}")
+        fetch_verified(url, pbf)
         print(f"{cid}: downloaded {pbf.stat().st_size} bytes, md5 ok", flush=True)
-        data, stats = encode(build_graph(read_ways(pbf)), osm_timestamp(pbf))
-        out = dist / f"{cid}.orpk"
-        out.write_bytes(data)
+        data, stats = build_pack(pbf)
+        (dist / f"{cid}.orpk").write_bytes(data)
         Pack(data).check()
-        (dist / f"{cid}.stats.json").write_text(json.dumps(stats, indent=2) + "\n", encoding="utf-8")
+        write_json(dist / f"{cid}.stats.json", stats)
         print(f"{cid}: {json.dumps(stats)}, check ok", flush=True)
         pbf.unlink()
 
 
-def cmd_notes(args):
-    sys.stdout.reconfigure(encoding="utf-8")
-    doc =json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+def gh(*args, check=True):
+    r = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if check and r.returncode != 0:
+        sys.exit(f"gh {args[0]} {args[1]} failed: {r.stderr.strip()}")
+    return r
+
+
+def free_tag():
+    base = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+    tag, n = base, 2
+    while gh("release", "view", tag, check=False).returncode == 0:
+        tag, n = f"{base}-{n}", n + 1
+    return tag
+
+
+def carry_over(countries, dist):
+    """Copy packs not built in this run from the latest release, so every release is complete."""
+    missing = [cid for cid in sorted(countries) if not (dist / f"{cid}.orpk").exists()]
+    if not missing:
+        return None, []
+    latest = gh("release", "view", "--json", "tagName", "-q", ".tagName", check=False)
+    if latest.returncode != 0:
+        print("no previous release to carry packs over from", flush=True)
+        return None, []
+    tag = latest.stdout.strip()
+    carried = []
+    for cid in missing:
+        r = gh("release", "download", tag, "-p", f"{cid}.orpk", "-D", str(dist), check=False)
+        if r.returncode == 0:
+            Pack.open(dist / f"{cid}.orpk").check()
+            carried.append(cid)
+        else:
+            print(f"{cid}: not in release {tag}, left out", flush=True)
+    return tag, carried
+
+
+def notes(doc, carried_from, carried):
+    if not doc["packs"]:
+        sys.exit("no packs to release")
     lines = [f"Road packs built from OpenStreetMap extracts ({doc['release']}).", "",
              "| Country | File | Size | OSM data as of | Edges | SHA-256 |", "|---|---|---|---|---|---|"]
     for p in doc["packs"]:
-        lines.append(f"| {p['name']} | `{p['file']}` | {p['size'] / 1e6:.1f} MB | {p['osm_timestamp']} "
+        lines.append(f"| {p['name']} | `{p['file']}` | {p['size'] / 1e6:.1f} MB | {p['osm_timestamp'] or 'unknown'} "
                      f"| {p['edges']:,} | `{p['sha256']}` |")
-    lines += ["", "Format: `ORPK` " + ", ".join(sorted({p["format_version"] for p in doc["packs"]}))
-              + ", see FORMAT.md. Manifest: `packs.json`.", "",
-              "Data © OpenStreetMap contributors, available under the Open Database License (ODbL) 1.0, "
-              "https://www.openstreetmap.org/copyright. Extracts by Geofabrik (https://download.geofabrik.de/)."]
-    sys.stdout.write("\n".join(lines) + "\n")
+    if carried:
+        lines += ["", f"Carried over unchanged from release {carried_from}: {', '.join(carried)}."]
+    versions = ", ".join(sorted({p["format_version"] for p in doc["packs"]}))
+    lines += ["", f"Format: `{FORMAT_NAME}` {versions}, see FORMAT.md. Manifest: `packs.json`.", "",
+              f"{ATTRIBUTION}. Extracts by Geofabrik (https://download.geofabrik.de/)."]
+    return "\n".join(lines) + "\n"
+
+
+def cmd_release(args):
+    countries = load_countries()
+    dist = Path(args.dist)
+    tag = free_tag()
+    carried_from, carried = carry_over(countries, dist)
+    doc = write_manifest(dist / "packs.json", tag, countries, dist)
+    (dist / "notes.md").write_text(notes(doc, carried_from, carried), encoding="utf-8", newline="\n")
+    files = [str(dist / p["file"]) for p in doc["packs"]] + [str(dist / "packs.json")]
+    gh("release", "create", tag, *files, "--title", tag, "--notes-file", str(dist / "notes.md"),
+       "--target", args.target)
+    print(f"released {tag}: {', '.join(p['country'] for p in doc['packs'])}", flush=True)
 
 
 def main():
@@ -89,10 +151,13 @@ def main():
     b.add_argument("--countries", default="")
     b.add_argument("--downloads", default="downloads")
     b.add_argument("--dist", default="dist")
-    n = sub.add_parser("notes")
-    n.add_argument("manifest")
+    b.set_defaults(func=cmd_build)
+    r = sub.add_parser("release")
+    r.add_argument("--dist", default="dist")
+    r.add_argument("--target", required=True, help="commit SHA the release tag points to")
+    r.set_defaults(func=cmd_release)
     args = p.parse_args()
-    {"build": cmd_build, "notes": cmd_notes}[args.cmd](args)
+    args.func(args)
 
 
 if __name__ == "__main__":
