@@ -18,8 +18,7 @@ class Graph:
     edge_a: np.ndarray  # node id of the start and end junction of each edge (int64)
     edge_b: np.ndarray
     edge_flags: np.ndarray  # pack_flags(class, oneway) (uint8)
-    inner_start: np.ndarray  # first interior point of each edge in inner_lat/inner_lon (int64)
-    inner_count: np.ndarray  # int64
+    inner_count: np.ndarray  # interior points per edge, stored edge after edge in inner_lat/inner_lon (int64)
     inner_lat: np.ndarray  # int32
     inner_lon: np.ndarray
     ways: int
@@ -40,13 +39,17 @@ def build_graph(ways, eps_m=2.0):
     first = np.frombuffer(starts, np.int64)
     last = np.append(first, len(ids))[1:] - 1
 
-    # A point splits its way if its node occurs twice or more, or ends any way (end nodes are always junctions).
-    _, inv, occ = np.unique(ids, return_inverse=True, return_counts=True)
-    junction = occ >= 2
-    junction[inv[first]] = True
-    junction[inv[last]] = True
-    pos = np.flatnonzero(junction[inv])
-    del inv, occ, junction
+    # A point splits its way if its node occurs twice or more, or ends a way (end nodes are always junctions).
+    order = np.argsort(ids)
+    srt = ids[order]
+    shared = srt[1:] == srt[:-1]
+    split = np.zeros(len(ids), bool)
+    split[order[1:][shared]] = True
+    split[order[:-1][shared]] = True
+    del order, srt, shared
+    split[first] = True
+    split[last] = True
+    pos = np.flatnonzero(split)
 
     # Edges run between consecutive split points of the same way.
     way = np.searchsorted(first, pos, side="right") - 1
@@ -63,7 +66,6 @@ def build_graph(ways, eps_m=2.0):
             la, lo = zip(*inner)
             inner_lat.extend(la)
             inner_lon.extend(lo)
-    inner_start = np.cumsum(inner_count) - inner_count
 
     a_ids, b_ids = ids[s], ids[e]
     keep = (a_ids != b_ids) | (inner_count > 0)
@@ -76,7 +78,6 @@ def build_graph(ways, eps_m=2.0):
         edge_a=a_ids[keep],
         edge_b=b_ids[keep],
         edge_flags=np.frombuffer(flags, np.uint8)[way[keep]],
-        inner_start=inner_start[keep],
         inner_count=inner_count[keep],
         inner_lat=np.frombuffer(inner_lat, np.int32),
         inner_lon=np.frombuffer(inner_lon, np.int32),

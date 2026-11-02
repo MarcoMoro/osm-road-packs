@@ -67,25 +67,27 @@ def read_ways(path):
     Two passes over the file: the location index stores only nodes of pack ways, not every node of the
     extract (which needs more memory than a CI runner has for large countries).
     """
-    store = osmium.index.create_map("sparse_mem_array")
+    # FileProcessor.with_locations() would put the location handler first; as a filter it runs after the node filter.
+    store = osmium.index.create_map("sparse_mem_array")  # referenced here, the handler does not keep it alive
     locations = osmium.NodeLocationsForWays(store)
     locations.ignore_errors()
-    # The iterator does not keep its handlers alive (a temporary handler crashes it), so hold them here.
-    handlers = (road_node_filter(path), locations, osmium.filter.EntityFilter(osmium.osm.WAY),
-                osmium.filter.KeyFilter("highway"))
-    with osmium.io.Reader(str(path), osmium.osm.NODE | osmium.osm.WAY) as reader:
-        for w in osmium.OsmFileIterator(reader, *handlers):
-            cls = way_class(w.tags)
-            if cls is None:
+    fp = (osmium.FileProcessor(str(path), osmium.osm.NODE | osmium.osm.WAY)
+          .with_filter(road_node_filter(path))
+          .with_filter(locations)
+          .with_filter(osmium.filter.EntityFilter(osmium.osm.WAY))
+          .with_filter(osmium.filter.KeyFilter("highway")))
+    for w in fp:
+        cls = way_class(w.tags)
+        if cls is None:
+            continue
+        pts = []
+        for n in w.nodes:
+            loc = n.location
+            if not loc.valid():
                 continue
-            pts = []
-            for n in w.nodes:
-                loc = n.location
-                if not loc.valid():
-                    continue
-                if pts and pts[-1][0] == n.ref:
-                    continue
-                pts.append((n.ref, e7_to_e6(loc.y), e7_to_e6(loc.x)))
-            if len(pts) < 2:
+            if pts and pts[-1][0] == n.ref:
                 continue
-            yield cls, way_oneway(w.tags), pts
+            pts.append((n.ref, e7_to_e6(loc.y), e7_to_e6(loc.x)))
+        if len(pts) < 2:
+            continue
+        yield cls, way_oneway(w.tags), pts
