@@ -12,7 +12,7 @@ A reader can memory-map a pack and decode only the cells around a position, with
 
 The format is called `ORPK` (OSM road pack) and is specified in [FORMAT.md](FORMAT.md).
 
-[![Video: OSM Road Packs in 26 seconds, rendered from the packs (click to play)](assets/osm-road-packs-video.jpg)](assets/osm-road-packs.mp4)
+![OSM Road Packs: roads rendered from the packs](assets/osm-road-packs-video.jpg)
 
 ## Packs
 
@@ -101,4 +101,4 @@ Data: the packs are derived from OpenStreetMap and licensed under the Open Datab
 Extracts by [Geofabrik](https://download.geofabrik.de/). See [NOTICE](NOTICE).
 The golden test packs use synthetic coordinates and contain no OpenStreetMap data.
 
-The video in `assets/` shows roads from the packs (ODbL, as above) and uses "Happy Beats / Business Moves Vol. 9" by Sascha Ende ([ende.app](https://ende.app/en)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), sped up and shortened.
+The video shows roads from the packs (ODbL, as above) and uses "Happy Beats / Business Moves Vol. 9" by Sascha Ende ([ende.app](https://ende.app/en)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), sped up and shortened.
