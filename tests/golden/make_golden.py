@@ -62,14 +62,14 @@ SCENARIOS = {
     ),
     # One way per filter rule; kept ways are marked in the comments.
     "filters": (
-        {n: (47.35 + 0.0002 * (n // 2), 8.5 + 0.00132 * (n % 2)) for n in range(40)},
+        {n: (47.35 + 0.0002 * (n // 2), 8.5 + 0.00132 * (n % 2)) for n in range(42)},
         [(1, [0, 1], {"highway": "motorway"}),  # kept, implied forward
          (2, [2, 3], {"highway": "motorway", "oneway": "no"}),  # kept, both
          (3, [4, 5], {"highway": "footway"}),
          (4, [6, 7], {"highway": "service", "service": "parking_aisle"}),
          (5, [8, 9], {"highway": "service", "service": "driveway"}),
          (6, [10, 11], {"highway": "service"}),  # kept
-         (7, [12, 13], {"highway": "residential", "access": "private"}),
+         (7, [12, 13], {"highway": "residential", "access": "private"}),  # kept, flagged private
          (8, [14, 15], {"highway": "residential", "access": "private", "motor_vehicle": "yes"}),  # kept
          (9, [16, 17, 19, 18, 16], {"highway": "residential", "area": "yes"}),
          (10, [20, 21], {"highway": "track"}),
@@ -81,7 +81,8 @@ SCENARIOS = {
          (16, [32, 33], {"highway": "service", "service": "drive-through"}),
          (17, [34, 35], {"highway": "service", "area": "no", "oneway": "true"}),  # kept, forward
          (18, [36, 37], {"highway": "tertiary", "junction": "roundabout", "oneway": "no"}),  # kept, both
-         (19, [38, 39], {"highway": "tertiary", "junction": "circular"})],  # kept, implied forward
+         (19, [38, 39], {"highway": "tertiary", "junction": "circular"}),  # kept, implied forward
+         (20, [40, 41], {"highway": "residential", "access": "no"})],
     ),
     # A closed ring (loop edge a == b), a way touching itself (figure eight) and an end overshoot
     # (the far point lies on the line through the end points but beyond the segment and must be kept).

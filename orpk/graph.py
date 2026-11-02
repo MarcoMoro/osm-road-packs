@@ -17,7 +17,7 @@ class Graph:
     junction_lon: np.ndarray
     edge_a: np.ndarray  # node id of the start and end junction of each edge (int64)
     edge_b: np.ndarray
-    edge_flags: np.ndarray  # pack_flags(class, oneway) (uint8)
+    edge_flags: np.ndarray  # pack_flags(class, oneway, private) (uint8)
     inner_count: np.ndarray  # interior points per edge, stored edge after edge in inner_lat/inner_lon (int64)
     inner_lat: np.ndarray  # int32
     inner_lon: np.ndarray
@@ -25,12 +25,12 @@ class Graph:
 
 
 def build_graph(ways, eps_m=2.0):
-    """ways: iterable of (class, oneway, [(node_id, lat_e6, lon_e6), ...])."""
+    """ways: iterable of (class, oneway, private, [(node_id, lat_e6, lon_e6), ...])."""
     ids, lats, lons = array("q"), array("i"), array("i")
     starts, flags = array("q"), array("B")
-    for cls, oneway, pts in ways:
+    for cls, oneway, private, pts in ways:
         starts.append(len(ids))
-        flags.append(pack_flags(cls, oneway))
+        flags.append(pack_flags(cls, oneway, private))
         i, la, lo = zip(*pts)
         ids.extend(i)
         lats.extend(la)

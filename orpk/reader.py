@@ -60,6 +60,7 @@ class Edge(NamedTuple):
     b: int
     cls: int
     oneway: int
+    private: bool  # access=private without a motor_vehicle=yes|designated override (format 1.1)
     points: list  # [(lat_e6, lon_e6)] interior points
 
 
@@ -120,11 +121,11 @@ class Pack:
         for _ in range(cur.uvarint()):
             a += cur.uvarint()
             b = a + cur.svarint()
-            cls, oneway = unpack_flags(cur.u8())
+            cls, oneway, private = unpack_flags(cur.u8())
             if not first <= a < first + len(junctions):
                 raise PackError(f"cell {i}: edge start {a} outside cell junctions")
             pts = cur.points(cur.uvarint(), junctions[a - first])
-            edges.append(Edge(a, b, cls, oneway, pts))
+            edges.append(Edge(a, b, cls, oneway, private, pts))
         if not cur.at_end():
             raise PackError(f"cell {i}: trailing bytes in payload")
         return Cell(clat, clon, first, junctions, edges, payload)
@@ -204,7 +205,8 @@ class Pack:
                     "first_junction": c.first_junction,
                     "junctions": [list(j) for j in c.junctions],
                     "edges": [
-                        {"a": e.a, "b": e.b, "class": e.cls, "oneway": e.oneway, "points": [list(p) for p in e.points]}
+                        {"a": e.a, "b": e.b, "class": e.cls, "oneway": e.oneway, "private": e.private,
+                         "points": [list(p) for p in e.points]}
                         for e in c.edges
                     ],
                 }

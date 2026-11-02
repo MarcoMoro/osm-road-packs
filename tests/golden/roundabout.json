@@ -1,6 +1,6 @@
 {
  "format": "ORPK",
- "version": "1.0",
+ "version": "1.1",
  "osm_timestamp": 1767225600,
  "bbox": [47448800, 8548100, 47451200, 8551900],
  "cell_size_e6": 50000,
@@ -22,6 +22,7 @@
      "b": 1,
      "class": 6,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -29,6 +30,7 @@
      "b": 4,
      "class": 6,
      "oneway": 1,
+     "private": false,
      "points": [
       [47449810, 8550280]
      ]
@@ -49,6 +51,7 @@
      "b": 3,
      "class": 6,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -56,6 +59,7 @@
      "b": 1,
      "class": 6,
      "oneway": 1,
+     "private": false,
      "points": [
       [47449810, 8549720]
      ]
@@ -78,6 +82,7 @@
      "b": 6,
      "class": 6,
      "oneway": 1,
+     "private": false,
      "points": [
       [47450190, 8550280]
      ]
@@ -87,6 +92,7 @@
      "b": 4,
      "class": 6,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -94,6 +100,7 @@
      "b": 3,
      "class": 6,
      "oneway": 1,
+     "private": false,
      "points": [
       [47450190, 8549720]
      ]
@@ -103,6 +110,7 @@
      "b": 6,
      "class": 6,
      "oneway": 0,
+     "private": false,
      "points": []
     }
    ]

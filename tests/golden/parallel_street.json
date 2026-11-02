@@ -1,6 +1,6 @@
 {
  "format": "ORPK",
- "version": "1.0",
+ "version": "1.1",
  "osm_timestamp": 1767225600,
  "bbox": [47380000, 8520000, 47381350, 8526600],
  "cell_size_e6": 50000,
@@ -24,6 +24,7 @@
      "b": 1,
      "class": 11,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -31,6 +32,7 @@
      "b": 2,
      "class": 11,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -38,6 +40,7 @@
      "b": 3,
      "class": 11,
      "oneway": 0,
+     "private": false,
      "points": []
     }
    ]

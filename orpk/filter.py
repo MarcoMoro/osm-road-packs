@@ -20,9 +20,14 @@ def way_class(tags):
         return None
     if tags.get("highway") == "service" and tags.get("service") in EXCLUDED_SERVICE:
         return None
-    if tags.get("access") in ("no", "private") and tags.get("motor_vehicle") not in MOTOR_VEHICLE_ALLOWED:
+    if tags.get("access") == "no" and tags.get("motor_vehicle") not in MOTOR_VEHICLE_ALLOWED:
         return None
     return cls
+
+
+def way_private(tags):
+    """access=private without an override for motor vehicles; kept, but flagged in the pack."""
+    return tags.get("access") == "private" and tags.get("motor_vehicle") not in MOTOR_VEHICLE_ALLOWED
 
 
 def way_oneway(tags):
@@ -62,7 +67,7 @@ def road_node_filter(path):
 
 
 def read_ways(path):
-    """Yield (class, oneway, [(node_id, lat_e6, lon_e6), ...]) for every pack way, in file order.
+    """Yield (class, oneway, private, [(node_id, lat_e6, lon_e6), ...]) for every pack way, in file order.
 
     Two passes over the file: the location index stores only nodes of pack ways, not every node of the
     extract (which needs more memory than a CI runner has for large countries).
@@ -90,4 +95,4 @@ def read_ways(path):
             pts.append((n.ref, e7_to_e6(loc.y), e7_to_e6(loc.x)))
         if len(pts) < 2:
             continue
-        yield cls, way_oneway(w.tags), pts
+        yield cls, way_oneway(w.tags), way_private(w.tags), pts

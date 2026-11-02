@@ -1,12 +1,12 @@
 {
  "format": "ORPK",
- "version": "1.0",
+ "version": "1.1",
  "osm_timestamp": 1767225600,
  "bbox": [47350000, 8500000, 47353800, 8501320],
  "cell_size_e6": 50000,
  "attribution": "Data © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright",
- "junction_count": 20,
- "edge_count": 10,
+ "junction_count": 22,
+ "edge_count": 11,
  "cells": [
   {
    "cell_lat": 947,
@@ -19,6 +19,8 @@
     [47350200, 8501320],
     [47351000, 8500000],
     [47351000, 8501320],
+    [47351200, 8500000],
+    [47351200, 8501320],
     [47351400, 8500000],
     [47351400, 8501320],
     [47352200, 8500000],
@@ -40,6 +42,7 @@
      "b": 1,
      "class": 0,
      "oneway": 1,
+     "private": false,
      "points": []
     },
     {
@@ -47,6 +50,7 @@
      "b": 3,
      "class": 0,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -54,6 +58,7 @@
      "b": 5,
      "class": 13,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -61,6 +66,7 @@
      "b": 7,
      "class": 11,
      "oneway": 0,
+     "private": true,
      "points": []
     },
     {
@@ -68,41 +74,55 @@
      "b": 9,
      "class": 11,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
      "a": 10,
      "b": 11,
-     "class": 1,
-     "oneway": 2,
+     "class": 11,
+     "oneway": 0,
+     "private": false,
      "points": []
     },
     {
      "a": 12,
      "b": 13,
-     "class": 10,
-     "oneway": 0,
+     "class": 1,
+     "oneway": 2,
+     "private": false,
      "points": []
     },
     {
      "a": 14,
      "b": 15,
-     "class": 13,
-     "oneway": 1,
+     "class": 10,
+     "oneway": 0,
+     "private": false,
      "points": []
     },
     {
      "a": 16,
      "b": 17,
-     "class": 8,
-     "oneway": 0,
+     "class": 13,
+     "oneway": 1,
+     "private": false,
      "points": []
     },
     {
      "a": 18,
      "b": 19,
      "class": 8,
+     "oneway": 0,
+     "private": false,
+     "points": []
+    },
+    {
+     "a": 20,
+     "b": 21,
+     "class": 8,
      "oneway": 1,
+     "private": false,
      "points": []
     }
    ]

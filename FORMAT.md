@@ -1,4 +1,4 @@
-# ORPK: OSM road pack format, version 1.0
+# ORPK: OSM road pack format, version 1.1
 
 Status: normative. A reader or writer that follows this document is compatible with the packs and the golden files in `tests/golden/`.
 
@@ -34,11 +34,11 @@ Cell blocks follow the index directly, contiguous and in index order, with no ga
 
 ## 3. Header
 
-| Offset | Type | Field | Value in 1.0 |
+| Offset | Type | Field | Value in 1.1 |
 |---|---|---|---|
 | 0 | 4 bytes | `magic` | ASCII `ORPK` (`4F 52 50 4B`) |
 | 4 | u16 | `version_major` | 1 |
-| 6 | u16 | `version_minor` | 0 |
+| 6 | u16 | `version_minor` | 1 |
 | 8 | u32 | `flags` | 0 (reserved) |
 | 12 | i64 | `osm_timestamp` | OSM data timestamp, Unix seconds UTC; 0 if unknown |
 | 20 | i32 | `min_lat_e6` | bounding box of all coordinates in the file (junctions and interior points), inclusive |
@@ -53,7 +53,7 @@ Cell blocks follow the index directly, contiguous and in index order, with no ga
 | 56 | u16 | `attribution_len` | byte length of `attribution` |
 | 58 | bytes | `attribution` | UTF-8 data attribution and licence notice |
 
-In 1.0, `index_offset = 58 + attribution_len`. `osm_timestamp` is the `osmosis_replication_timestamp` of the source extract. An empty pack (no roads) has `cell_count = 0`, `junction_count = 0`, `edge_count = 0` and a bounding box of all zeros.
+In 1.0 and 1.1, `index_offset = 58 + attribution_len`. `osm_timestamp` is the `osmosis_replication_timestamp` of the source extract. An empty pack (no roads) has `cell_count = 0`, `junction_count = 0`, `edge_count = 0` and a bounding box of all zeros.
 
 The attribution string of packs built by this repository is:
 
@@ -161,13 +161,17 @@ Bits 4-5, oneway:
 | 2 | backward only (`b` to `a`) |
 | 3 | reserved |
 
+Bit 6, private (since 1.1): 1 if the OSM way has `access=private` and no `motor_vehicle=yes|designated`. Such roads are not open to the public; a consumer decides whether to use them. 1.0 files have 0.
+
+Bit 7: reserved, 0.
+
 ## 9. Content (builder behaviour, informative)
 
 Packs in this repository are built from Geofabrik OSM extracts with these rules; they do not change the binary format.
 
 - Ways with `highway` in the class table above. `service` ways are dropped when `service` is `parking_aisle`, `driveway` or `drive-through`.
 - Ways with `area=yes` are dropped (areas are not centrelines).
-- Ways with `access=no` or `access=private` are dropped unless `motor_vehicle` is `yes` or `designated`.
+- Ways with `access=no` are dropped unless `motor_vehicle` is `yes` or `designated`. Ways with `access=private` are kept and flagged (section 8, bit 6) unless `motor_vehicle` is `yes` or `designated`, in which case they are kept unflagged.
 - Oneway: `oneway=yes|1|true` gives forward, `oneway=-1` gives backward, `oneway=no|0|false` gives both; when `oneway` is absent or has another value, `highway=motorway` and `junction=roundabout|circular` imply forward, all other ways are both.
 - Nodes without a valid location are skipped, consecutive duplicate nodes collapsed; ways with fewer than two nodes are dropped.
 - A node becomes a junction if it is the first or last node of a way or is used more than once (by several ways, or twice by one way). Ways are split at junctions into edges.
@@ -180,7 +184,8 @@ Packs in this repository are built from Geofabrik OSM extracts with these rules;
 - `version_major` changes on any incompatible change. A reader MUST reject a file whose `version_major` it does not know.
 - `version_minor` changes on backwards-compatible additions only, for example new header fields after `attribution` (before the index, which `index_offset` points to), or a meaning for reserved flag bits that older readers may ignore. A 1.0 reader MUST accept any 1.x file: it seeks to `index_offset`, ignores header bytes it does not know and ignores bits 6-7 of the edge flags.
 - Class values 14-15 and oneway value 3 are reserved for future minor versions. A 1.0 reader encountering them SHOULD treat the edge as class unknown / both directions rather than failing.
-- `flags` in the header is reserved; writers of 1.0 write 0, readers ignore it.
+- `flags` in the header is reserved; writers write 0, readers ignore it.
+- History: 1.0 (2026-11-02) initial version; 1.1 (2026-11-02) edge flag bit 6, private.
 
 ## 11. Validation
 
@@ -215,7 +220,7 @@ Each release carries a `packs.json` (UTF-8 JSON) describing its packs. Every con
       "sha256": "<64 lowercase hex digits>",
       "osm_timestamp": "2026-11-01T21:21:36Z",
       "format": "ORPK",
-      "format_version": "1.0",
+      "format_version": "1.1",
       "junctions": 843387,
       "edges": 953279,
       "source": "https://download.geofabrik.de/europe/switzerland-latest.osm.pbf"

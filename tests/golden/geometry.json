@@ -1,6 +1,6 @@
 {
  "format": "ORPK",
- "version": "1.0",
+ "version": "1.1",
  "osm_timestamp": 1767225600,
  "bbox": [47300000, 8600000, 47320000, 8603900],
  "cell_size_e6": 50000,
@@ -26,6 +26,7 @@
      "b": 0,
      "class": 11,
      "oneway": 0,
+     "private": false,
      "points": [
       [47300000, 8601300],
       [47300900, 8601300],
@@ -37,6 +38,7 @@
      "b": 2,
      "class": 11,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -44,6 +46,7 @@
      "b": 2,
      "class": 11,
      "oneway": 0,
+     "private": false,
      "points": [
       [47310900, 8602600],
       [47309100, 8602600]
@@ -54,6 +57,7 @@
      "b": 3,
      "class": 11,
      "oneway": 0,
+     "private": false,
      "points": []
     },
     {
@@ -61,6 +65,7 @@
      "b": 5,
      "class": 13,
      "oneway": 0,
+     "private": false,
      "points": [
       [47320000, 8603900]
      ]

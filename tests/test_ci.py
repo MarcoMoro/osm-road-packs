@@ -40,7 +40,7 @@ def test_manifest_and_notes(tmp_path):
     assert json.loads((tmp_path / "packs.json").read_text(encoding="utf-8")) == doc
     entry, _ = doc["packs"]
     assert entry["country"] == "ch" and entry["file"] == "ch.orpk"
-    assert entry["osm_timestamp"] == "2026-01-01T00:00:00Z" and entry["format_version"] == "1.0"
+    assert entry["osm_timestamp"] == "2026-01-01T00:00:00Z" and entry["format_version"] == "1.1"
     assert entry["source"] == "https://download.geofabrik.de/europe/switzerland-latest.osm.pbf"
     text = notes(doc, "2026-10-03", ["li"])
     assert ATTRIBUTION in text and "Carried over unchanged from release 2026-10-03: li." in text

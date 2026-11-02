@@ -37,7 +37,7 @@ def test_reader_round_trip_matches_json(name):
 
 def test_header_fields():
     p = committed("t_junction")
-    assert (p.version_major, p.version_minor) == (1, 0)
+    assert (p.version_major, p.version_minor) == (1, 1)
     assert p.osm_timestamp == 1767225600
     assert p.cell_size == 50000
     assert "© OpenStreetMap contributors, ODbL 1.0" in p.attribution
@@ -89,18 +89,19 @@ def test_parallel_streets_connected_only_at_west_end():
 
 
 def test_filters():
-    got = sorted((e.cls, e.oneway) for e in edges(committed("filters")))
+    got = sorted((e.cls, e.oneway, e.private) for e in edges(committed("filters")))
     assert got == sorted([
-        (CLASS_ID["motorway"], ONEWAY_FORWARD),
-        (CLASS_ID["motorway"], ONEWAY_BOTH),
-        (CLASS_ID["service"], ONEWAY_BOTH),
-        (CLASS_ID["residential"], ONEWAY_BOTH),
-        (CLASS_ID["residential"], ONEWAY_BOTH),
-        (CLASS_ID["motorway_link"], ONEWAY_BACKWARD),
-        (CLASS_ID["unclassified"], ONEWAY_BOTH),
-        (CLASS_ID["service"], ONEWAY_FORWARD),
-        (CLASS_ID["tertiary"], ONEWAY_BOTH),
-        (CLASS_ID["tertiary"], ONEWAY_FORWARD),
+        (CLASS_ID["motorway"], ONEWAY_FORWARD, False),
+        (CLASS_ID["motorway"], ONEWAY_BOTH, False),
+        (CLASS_ID["service"], ONEWAY_BOTH, False),
+        (CLASS_ID["residential"], ONEWAY_BOTH, True),
+        (CLASS_ID["residential"], ONEWAY_BOTH, False),
+        (CLASS_ID["residential"], ONEWAY_BOTH, False),
+        (CLASS_ID["motorway_link"], ONEWAY_BACKWARD, False),
+        (CLASS_ID["unclassified"], ONEWAY_BOTH, False),
+        (CLASS_ID["service"], ONEWAY_FORWARD, False),
+        (CLASS_ID["tertiary"], ONEWAY_BOTH, False),
+        (CLASS_ID["tertiary"], ONEWAY_FORWARD, False),
     ])
 
 

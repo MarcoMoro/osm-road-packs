@@ -5,7 +5,7 @@ import struct
 MAGIC = b"ORPK"
 FORMAT_NAME = MAGIC.decode("ascii")
 VERSION_MAJOR = 1
-VERSION_MINOR = 0
+VERSION_MINOR = 1
 CELL_SIZE_E6 = 50_000
 ATTRIBUTION = "Data © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright"
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -34,13 +34,13 @@ def cell_of(lat_e6, lon_e6, cell_size_e6=CELL_SIZE_E6):
     return lat_e6 // cell_size_e6, lon_e6 // cell_size_e6
 
 
-def pack_flags(cls, oneway):
-    return cls | (oneway << 4)
+def pack_flags(cls, oneway, private=False):
+    return cls | (oneway << 4) | (int(private) << 6)
 
 
 def unpack_flags(flags):
-    """(class, oneway); reserved bits 6-7 are ignored."""
-    return flags & 0x0F, (flags >> 4) & 0x03
+    """(class, oneway, private); reserved bit 7 is ignored."""
+    return flags & 0x0F, (flags >> 4) & 0x03, bool(flags & 0x40)
 
 
 class Extent:

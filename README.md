@@ -25,7 +25,7 @@ Countries are configured in [`countries.json`](countries.json) (id, display name
 
 ## Content
 
-Roads with `highway` = `motorway`, `trunk`, `primary`, `secondary`, `tertiary` (each with `_link`), `unclassified`, `residential`, `living_street` and `service` (without parking aisles, driveways and drive-throughs). Ways tagged `access=no` or `access=private` are left out unless `motor_vehicle=yes/designated`; other restriction tags (`motor_vehicle=no`, `vehicle=no`, ...) are not evaluated. `area=yes` ways are left out. Oneway direction comes from `oneway`, implied for motorways and roundabouts unless `oneway=no`. Geometry is simplified with [Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) at 2 m. Details: FORMAT.md section 9.
+Roads with `highway` = `motorway`, `trunk`, `primary`, `secondary`, `tertiary` (each with `_link`), `unclassified`, `residential`, `living_street` and `service` (without parking aisles, driveways and drive-throughs). Ways tagged `access=no` are left out unless `motor_vehicle=yes/designated`; `access=private` ways are kept and flagged as private, so each consumer decides whether to use them; other restriction tags (`motor_vehicle=no`, `vehicle=no`, ...) are not evaluated. `area=yes` ways are left out. Oneway direction comes from `oneway`, implied for motorways and roundabouts unless `oneway=no`. Geometry is simplified with [Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) at 2 m. Details: FORMAT.md section 9.
 
 ## Usage
 
