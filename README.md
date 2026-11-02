@@ -8,6 +8,10 @@ Compact, routable road packs built from OpenStreetMap country extracts.
 
 A pack holds the drivable road network of one country as a junction graph (junctions, road segments with simplified geometry, road class and oneway direction), split into 0.05 degree cells that are compressed individually. A reader can memory-map a pack and decode only the cells around a position, without unpacking the whole file. The format is called `ORPK` (OSM road pack) and is specified in [FORMAT.md](FORMAT.md).
 
+[![Video: OSM Road Packs in 26 seconds, rendered from the packs (click to play)](assets/osm-road-packs-video.jpg)](assets/osm-road-packs.mp4)
+
+Video (26 s): roads rendered from release `2026-11-02`. Music: Sascha Ende, [ende.app](https://ende.app/en), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (edited: tempo, length).
+
 ## Packs
 
 Packs are built monthly by GitHub Actions, one parallel job per country, and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13). A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete. A run fails instead of publishing a partial release (for example, a country newly added to `countries.json` must be part of the run).
@@ -83,3 +87,5 @@ Data: the packs are derived from OpenStreetMap and licensed under the Open Datab
 > Data © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright
 
 Extracts by [Geofabrik](https://download.geofabrik.de/). See [NOTICE](NOTICE). The golden test packs use synthetic coordinates and contain no OpenStreetMap data.
+
+The video in `assets/` shows roads from the packs (ODbL, as above) and uses "Happy Beats / Business Moves Vol. 9" by Sascha Ende ([ende.app](https://ende.app/en)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), sped up and shortened.
