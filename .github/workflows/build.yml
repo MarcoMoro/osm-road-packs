@@ -22,7 +22,6 @@ jobs:
     uses: ./.github/workflows/test.yml
 
   countries:
-    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -31,23 +30,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+      - uses: ./.github/actions/setup
         with:
-          python-version: "3.14.10"
-          cache: pip
-      - name: Install
-        run: python -m pip install --require-hashes -r requirements.txt
+          install: "false"
       - name: List countries
         id: list
         env:
           COUNTRIES: ${{ inputs.countries }}
-        run: echo "ids=$(python -m scripts.ci_build list --countries "$COUNTRIES")" >> "$GITHUB_OUTPUT"
+        run: |
+          ids=$(python -m scripts.ci_build list --countries "$COUNTRIES")
+          echo "ids=$ids" >> "$GITHUB_OUTPUT"
 
   # One job per country: downloads and builds run in parallel, a failed country can be re-run alone.
   build:
-    needs: countries
+    needs: [test, countries]
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
     strategy:
       fail-fast: false  # keep the other packs, so "Re-run failed jobs" repeats only the failed country
       matrix:
@@ -56,12 +54,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
-        with:
-          python-version: "3.14.10"
-          cache: pip
-      - name: Install
-        run: python -m pip install --require-hashes -r requirements.txt
+      - uses: ./.github/actions/setup
       - name: Download, build and check pack
         env:
           COUNTRY: ${{ matrix.country }}
@@ -71,11 +64,11 @@ jobs:
           name: pack-${{ matrix.country }}
           path: dist/${{ matrix.country }}.orpk
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 3  # long enough to re-run a failed country
           compression-level: 0  # cell blocks are already deflated
 
   release:
-    needs: build
+    needs: [countries, build]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -84,12 +77,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+      - uses: ./.github/actions/setup
         with:
-          python-version: "3.14.10"
-          cache: pip
-      - name: Install
-        run: python -m pip install --require-hashes -r requirements.txt
+          install: "false"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           pattern: pack-*
@@ -99,4 +89,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: python -m scripts.ci_build release --target "$GITHUB_SHA"
+          BUILT: ${{ join(fromJSON(needs.countries.outputs.ids), ' ') }}
+        run: python -m scripts.ci_build release --built "$BUILT" --target "$GITHUB_SHA"

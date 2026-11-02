@@ -5,7 +5,7 @@ import pytest
 import make_golden
 from orpk.codec import ATTRIBUTION
 from orpk.manifest import write_manifest
-from scripts.ci_build import notes, select
+from scripts.ci_build import notes, require_built, select
 
 COUNTRIES = {"ch": {"name": "Switzerland", "geofabrik": "europe/switzerland"},
              "li": {"name": "Liechtenstein", "geofabrik": "europe/liechtenstein"}}
@@ -14,9 +14,17 @@ COUNTRIES = {"ch": {"name": "Switzerland", "geofabrik": "europe/switzerland"},
 def test_select_validates_ids():
     assert select(COUNTRIES, "") == ["ch", "li"]
     assert select(COUNTRIES, " li ") == ["li"]
+    assert select(COUNTRIES, "li ch li") == ["li", "ch"]
     for bad in ("de", "CH", "ch;rm"):
         with pytest.raises(SystemExit):
             select(COUNTRIES, bad)
+
+
+def test_release_requires_packs_built_in_this_run(tmp_path):
+    (tmp_path / "ch.orpk").write_bytes(b"")
+    require_built(tmp_path, ["ch"])
+    with pytest.raises(SystemExit, match="li"):
+        require_built(tmp_path, ["ch", "li"])
 
 
 def test_manifest_requires_every_configured_pack(tmp_path):

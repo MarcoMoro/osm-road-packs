@@ -3,7 +3,7 @@
 Run from the repository root:
   python -m scripts.ci_build list [--countries "ch at"]    (JSON list of validated ids; empty = all)
   python -m scripts.ci_build build [--countries "ch at"]   (empty = all in countries.json)
-  python -m scripts.ci_build release                       (needs gh and GH_TOKEN)
+  python -m scripts.ci_build release [--built "ch at"]     (needs gh and GH_TOKEN)
 """
 
 import argparse
@@ -16,7 +16,6 @@ import sys
 import urllib.request
 from pathlib import Path
 
-from orpk.build import build_pack
 from orpk.codec import ATTRIBUTION, FORMAT_NAME
 from orpk.manifest import source_url, write_json, write_manifest
 from orpk.reader import Pack
@@ -61,7 +60,7 @@ def fetch_verified(url, dest):
 
 
 def select(countries, wanted):
-    ids = wanted.split() if wanted and wanted.strip() else sorted(countries)
+    ids = list(dict.fromkeys(wanted.split())) if wanted and wanted.strip() else sorted(countries)
     for cid in ids:
         if not re.fullmatch(r"[a-z]{2,8}", cid) or cid not in countries:
             sys.exit(f"unknown country id {cid!r}; configured: {', '.join(sorted(countries))}")
@@ -73,6 +72,8 @@ def cmd_list(args):
 
 
 def cmd_build(args):
+    from orpk.build import build_pack  # imported here so list and release work without osmium and numpy
+
     countries = load_countries()
     downloads, dist = Path(args.downloads), Path(args.dist)
     downloads.mkdir(exist_ok=True)
@@ -117,8 +118,14 @@ def carry_over(countries, dist):
     tag = gh("release", "view", "--json", "tagName", "-q", ".tagName").stdout.strip()
     for cid in missing:
         gh("release", "download", tag, "-p", f"{cid}.orpk", "-D", str(dist))
-        Pack.open(dist / f"{cid}.orpk").check()
     return tag, missing
+
+
+def require_built(dist, built):
+    """Every pack built in this run must be in dist; otherwise carry_over would fill the gap with older packs."""
+    missing = [cid for cid in built if not (dist / f"{cid}.orpk").exists()]
+    if missing:
+        sys.exit(f"packs built in this run missing from {dist}: {', '.join(missing)}")
 
 
 def notes(doc, carried_from, carried):
@@ -140,8 +147,11 @@ def notes(doc, carried_from, carried):
 def cmd_release(args):
     countries = load_countries()
     dist = Path(args.dist)
+    require_built(dist, select(countries, args.built) if args.built.strip() else [])
     tag = free_tag()
     carried_from, carried = carry_over(countries, dist)
+    for cid in sorted(countries):
+        Pack.open(dist / f"{cid}.orpk").check()
     doc = write_manifest(dist / "packs.json", tag, countries, dist)
     (dist / "notes.md").write_text(notes(doc, carried_from, carried), encoding="utf-8", newline="\n")
     files = [str(dist / p["file"]) for p in doc["packs"]] + [str(dist / "packs.json")]
@@ -163,6 +173,7 @@ def main():
     b.set_defaults(func=cmd_build)
     r = sub.add_parser("release")
     r.add_argument("--dist", default="dist")
+    r.add_argument("--built", default="", help="country ids built in this run; each must be in --dist")
     r.add_argument("--target", required=True, help="commit SHA the release tag points to")
     r.set_defaults(func=cmd_release)
     args = p.parse_args()
