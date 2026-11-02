@@ -71,6 +71,16 @@ def small_pack():
     return encode(build_graph(ways), 0)[0]
 
 
+def test_parallel_edges_sorted_by_interior_points():
+    a, b = (1, 47000000, 8000000), (2, 47000000, 8010000)
+    ways = [(11, 0, [a, (10, 47002000, 8005000), b]),
+            (11, 0, [a, (11, 47001000, 8005000), (12, 47001000, 8007000), b]),
+            (11, 0, [a, (13, 47001000, 8005000), b])]
+    edges = Pack(encode(build_graph(ways), 0)[0]).cell(0).edges
+    assert [e.points for e in edges] == [[(47001000, 8005000)], [(47001000, 8005000), (47001000, 8007000)],
+                                         [(47002000, 8005000)]]
+
+
 def test_check_detects_corruption():
     data = bytearray(small_pack())
     Pack(bytes(data)).check()

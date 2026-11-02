@@ -1,5 +1,7 @@
 """Read drivable road ways from an OSM file (FORMAT.md section 9)."""
 
+from array import array
+
 import osmium
 from osmium.replication.utils import get_replication_header
 
@@ -50,24 +52,40 @@ def osm_timestamp(path):
     return int(ts.timestamp()) if ts else 0
 
 
+def road_node_filter(path):
+    """First pass: a filter that passes only nodes of pack ways."""
+    refs = array("q")
+    for w in osmium.FileProcessor(str(path), osmium.osm.WAY).with_filter(osmium.filter.KeyFilter("highway")):
+        if way_class(w.tags) is not None:
+            refs.extend(n.ref for n in w.nodes)
+    return osmium.filter.IdFilter(refs).enable_for(osmium.osm.NODE)
+
+
 def read_ways(path):
-    """Yield (class, oneway, [(node_id, lat_e6, lon_e6), ...]) for every pack way, in file order."""
-    fp = (osmium.FileProcessor(str(path), osmium.osm.NODE | osmium.osm.WAY)
-          .with_locations("flex_mem")
-          .with_filter(osmium.filter.EntityFilter(osmium.osm.WAY))
-          .with_filter(osmium.filter.KeyFilter("highway")))
-    for w in fp:
-        cls = way_class(w.tags)
-        if cls is None:
-            continue
-        pts = []
-        for n in w.nodes:
-            loc = n.location
-            if not loc.valid():
+    """Yield (class, oneway, [(node_id, lat_e6, lon_e6), ...]) for every pack way, in file order.
+
+    Two passes over the file: the location index stores only nodes of pack ways, not every node of the
+    extract (which needs more memory than a CI runner has for large countries).
+    """
+    store = osmium.index.create_map("sparse_mem_array")
+    locations = osmium.NodeLocationsForWays(store)
+    locations.ignore_errors()
+    # The iterator does not keep its handlers alive (a temporary handler crashes it), so hold them here.
+    handlers = (road_node_filter(path), locations, osmium.filter.EntityFilter(osmium.osm.WAY),
+                osmium.filter.KeyFilter("highway"))
+    with osmium.io.Reader(str(path), osmium.osm.NODE | osmium.osm.WAY) as reader:
+        for w in osmium.OsmFileIterator(reader, *handlers):
+            cls = way_class(w.tags)
+            if cls is None:
                 continue
-            if pts and pts[-1][0] == n.ref:
+            pts = []
+            for n in w.nodes:
+                loc = n.location
+                if not loc.valid():
+                    continue
+                if pts and pts[-1][0] == n.ref:
+                    continue
+                pts.append((n.ref, e7_to_e6(loc.y), e7_to_e6(loc.x)))
+            if len(pts) < 2:
                 continue
-            pts.append((n.ref, e7_to_e6(loc.y), e7_to_e6(loc.x)))
-        if len(pts) < 2:
-            continue
-        yield cls, way_oneway(w.tags), pts
+            yield cls, way_oneway(w.tags), pts

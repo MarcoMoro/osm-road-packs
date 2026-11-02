@@ -1,43 +1,84 @@
 """Split road ways into a junction graph (FORMAT.md section 9)."""
 
-from collections import Counter
-from dataclasses import dataclass, field
+from array import array
+from dataclasses import dataclass
 
+import numpy as np
+
+from .codec import pack_flags
 from .simplify import douglas_peucker
 
 
 @dataclass
 class Graph:
-    junctions: dict = field(default_factory=dict)  # node id -> (lat_e6, lon_e6)
-    edges: list = field(default_factory=list)  # (a node id, b node id, class, oneway, [(lat_e6, lon_e6)] interior)
-    ways: int = 0
+    """Flat arrays, since a large country has tens of millions of points."""
+    junction_ids: np.ndarray  # sorted unique node ids (int64)
+    junction_lat: np.ndarray  # int32, same order as junction_ids
+    junction_lon: np.ndarray
+    edge_a: np.ndarray  # node id of the start and end junction of each edge (int64)
+    edge_b: np.ndarray
+    edge_flags: np.ndarray  # pack_flags(class, oneway) (uint8)
+    inner_start: np.ndarray  # first interior point of each edge in inner_lat/inner_lon (int64)
+    inner_count: np.ndarray  # int64
+    inner_lat: np.ndarray  # int32
+    inner_lon: np.ndarray
+    ways: int
 
 
 def build_graph(ways, eps_m=2.0):
     """ways: iterable of (class, oneway, [(node_id, lat_e6, lon_e6), ...])."""
-    ways = list(ways)
-    use = Counter()
-    for _, _, pts in ways:
-        use.update([p[0] for p in pts])
-        use[pts[0][0]] += 1  # end nodes count twice, so they are always junctions
-        use[pts[-1][0]] += 1
-
-    g = Graph(ways=len(ways))
+    ids, lats, lons = array("q"), array("i"), array("i")
+    starts, flags = array("q"), array("B")
     for cls, oneway, pts in ways:
-        start = 0
-        last = len(pts) - 1
-        for i in range(1, last + 1):
-            if i < last and use[pts[i][0]] < 2:
-                continue
-            a, b = pts[start], pts[i]
-            if i - start > 1:
-                inner = douglas_peucker([(p[1], p[2]) for p in pts[start:i + 1]], eps_m)[1:-1]
-            else:
-                inner = []
-            start = i
-            if a[0] == b[0] and not inner:
-                continue
-            g.junctions[a[0]] = (a[1], a[2])
-            g.junctions[b[0]] = (b[1], b[2])
-            g.edges.append((a[0], b[0], cls, oneway, inner))
-    return g
+        starts.append(len(ids))
+        flags.append(pack_flags(cls, oneway))
+        i, la, lo = zip(*pts)
+        ids.extend(i)
+        lats.extend(la)
+        lons.extend(lo)
+    ids, lats, lons = np.frombuffer(ids, np.int64), np.frombuffer(lats, np.int32), np.frombuffer(lons, np.int32)
+    first = np.frombuffer(starts, np.int64)
+    last = np.append(first, len(ids))[1:] - 1
+
+    # A point splits its way if its node occurs twice or more, or ends any way (end nodes are always junctions).
+    _, inv, occ = np.unique(ids, return_inverse=True, return_counts=True)
+    junction = occ >= 2
+    junction[inv[first]] = True
+    junction[inv[last]] = True
+    pos = np.flatnonzero(junction[inv])
+    del inv, occ, junction
+
+    # Edges run between consecutive split points of the same way.
+    way = np.searchsorted(first, pos, side="right") - 1
+    same = way[1:] == way[:-1]
+    s, e, way = pos[:-1][same], pos[1:][same], way[:-1][same]
+
+    inner_count = np.zeros(len(s), np.int64)
+    inner_lat, inner_lon = array("i"), array("i")
+    long_edges = np.flatnonzero(e - s > 1)
+    for k, a, b in zip(long_edges.tolist(), s[long_edges].tolist(), e[long_edges].tolist()):
+        inner = douglas_peucker(list(zip(lats[a:b + 1].tolist(), lons[a:b + 1].tolist())), eps_m)[1:-1]
+        if inner:
+            inner_count[k] = len(inner)
+            la, lo = zip(*inner)
+            inner_lat.extend(la)
+            inner_lon.extend(lo)
+    inner_start = np.cumsum(inner_count) - inner_count
+
+    a_ids, b_ids = ids[s], ids[e]
+    keep = (a_ids != b_ids) | (inner_count > 0)
+    ends = np.concatenate((s[keep], e[keep]))
+    junction_ids, at = np.unique(ids[ends], return_index=True)
+    return Graph(
+        junction_ids=junction_ids,
+        junction_lat=lats[ends[at]],
+        junction_lon=lons[ends[at]],
+        edge_a=a_ids[keep],
+        edge_b=b_ids[keep],
+        edge_flags=np.frombuffer(flags, np.uint8)[way[keep]],
+        inner_start=inner_start[keep],
+        inner_count=inner_count[keep],
+        inner_lat=np.frombuffer(inner_lat, np.int32),
+        inner_lon=np.frombuffer(inner_lon, np.int32),
+        ways=len(first),
+    )
