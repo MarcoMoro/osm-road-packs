@@ -6,20 +6,7 @@ A pack holds the drivable road network of one country as a junction graph (junct
 
 ## Packs
 
-Packs are built monthly by GitHub Actions and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest:
-
-```json
-{
-  "release": "2026-11-02",
-  "license": "ODbL-1.0",
-  "packs": [
-    {"country": "ch", "name": "Switzerland", "file": "ch.orpk", "size": 9317976,
-     "sha256": "...", "osm_timestamp": "2026-11-01T21:21:36Z",
-     "format": "ORPK", "format_version": "1.0", "junctions": 843387, "edges": 953279,
-     "source": "https://download.geofabrik.de/europe/switzerland-latest.osm.pbf"}
-  ]
-}
-```
+Packs are built monthly by GitHub Actions and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13). A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete.
 
 | Country | Id | Source extract | Size (2026-11-02) |
 |---|---|---|---|
@@ -29,15 +16,15 @@ Countries are configured in [`countries.json`](countries.json) (id, display name
 
 ## Content
 
-Roads with `highway` = `motorway`, `trunk`, `primary`, `secondary`, `tertiary` (each with `_link`), `unclassified`, `residential`, `living_street` and `service` (without parking aisles, driveways and drive-throughs). Roads closed to motor vehicles (`access=no/private` without `motor_vehicle=yes/designated`) and `area=yes` are left out. Oneway direction comes from `oneway`, implied for motorways and roundabouts. Geometry is simplified with Douglas-Peucker at 2 m. Details: FORMAT.md section 9.
+Roads with `highway` = `motorway`, `trunk`, `primary`, `secondary`, `tertiary` (each with `_link`), `unclassified`, `residential`, `living_street` and `service` (without parking aisles, driveways and drive-throughs). Ways tagged `access=no` or `access=private` are left out unless `motor_vehicle=yes/designated`; other restriction tags (`motor_vehicle=no`, `vehicle=no`, ...) are not evaluated. `area=yes` ways are left out. Oneway direction comes from `oneway`, implied for motorways and roundabouts unless `oneway=no`. Geometry is simplified with Douglas-Peucker at 2 m. Details: FORMAT.md section 9.
 
 ## Usage
 
-Requires Python 3.14 (verified with 3.14.10).
+Requires Python 3.14 (verified with 3.14.10). Run commands from the repository root.
 
 ```sh
 python -m venv .venv
-.venv/bin/pip install -r requirements.txt     # Windows: .venv\Scripts\pip
+.venv/bin/pip install --require-hashes -r requirements.txt     # Windows: .venv\Scripts\pip
 
 # Download an extract and verify it
 curl -LO https://download.geofabrik.de/europe/switzerland-latest.osm.pbf
@@ -45,7 +32,7 @@ curl -LO https://download.geofabrik.de/europe/switzerland-latest.osm.pbf.md5
 md5sum -c switzerland-latest.osm.pbf.md5
 
 python -m orpk build switzerland-latest.osm.pbf -o ch.orpk --stats ch.stats.json
-python -m orpk check ch.orpk          # decode every cell and validate all invariants
+python -m orpk check ch.orpk            # decode every cell and validate all invariants
 python -m orpk dump ch.orpk -o ch.json  # decoded JSON (large for a whole country)
 python -m orpk manifest --release 2026-11-02 --pack-dir . -o packs.json
 ```
@@ -54,18 +41,18 @@ Building Switzerland takes about 40 s and a few GB of RAM on a desktop PC.
 
 ## Tests and golden files
 
-`tests/golden/` holds small packs built from synthetic OSM data (a T junction, a dual carriageway, a roundabout, cell boundary crossings including negative coordinates, two parallel streets 150 m apart, one way per filter rule, an empty pack) plus their decoded JSON. They are the reference for other reader implementations.
+`tests/golden/` holds small packs built from synthetic OSM data (T junction, dual carriageway, roundabout, cell boundary crossings including negative coordinates, two parallel streets 150 m apart, one way per filter rule, loop edges and a simplification overshoot, an empty pack) plus their decoded JSON. They are the reference for other reader implementations.
 
 ```sh
-python -m pytest                       # rebuild goldens and compare, reader round trip, codec tests
-python tests/golden/make_golden.py     # regenerate goldens after an intended change
+python -m pytest                      # rebuild goldens and compare, reader round trip, codec tests
+python -m tests.golden.make_golden    # regenerate goldens after an intended change
 ```
 
 Rebuilt packs are compared in canonical form (header, index without offsets, inflated cell payloads), because DEFLATE output differs between zlib implementations.
 
 ## Versions
 
-Verified 2026-11-02:
+Verified 2026-11-02. Python dependencies are pinned with hashes in `requirements.txt` (including transitive ones); Dependabot proposes monthly updates for them and for the actions.
 
 | Component | Version | Source |
 |---|---|---|
@@ -81,7 +68,6 @@ Code: MIT, see [LICENSE](LICENSE).
 
 Data: the packs are derived from OpenStreetMap and licensed under the Open Database License 1.0.
 
-> Data © OpenStreetMap contributors, available under the Open Database License (ODbL) 1.0.
-> https://www.openstreetmap.org/copyright
+> Data © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright
 
 Extracts by [Geofabrik](https://download.geofabrik.de/). See [NOTICE](NOTICE). The golden test packs use synthetic coordinates and contain no OpenStreetMap data.

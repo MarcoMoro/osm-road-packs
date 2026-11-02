@@ -171,7 +171,7 @@ Packs in this repository are built from Geofabrik OSM extracts with these rules;
 - Oneway: `oneway=yes|1|true` gives forward, `oneway=-1` gives backward, `oneway=no|0|false` gives both; when `oneway` is absent or has another value, `highway=motorway` and `junction=roundabout|circular` imply forward, all other ways are both.
 - Nodes without a valid location are skipped, consecutive duplicate nodes collapsed; ways with fewer than two nodes are dropped.
 - A node becomes a junction if it is the first or last node of a way or is used more than once (by several ways, or twice by one way). Ways are split at junctions into edges.
-- Each edge is simplified with Douglas-Peucker at 2 m tolerance on a local equirectangular projection; the end points are always kept.
+- Each edge is simplified with Douglas-Peucker at 2 m tolerance (distance from a point to the segment between the current end points) on a local equirectangular projection; the end points are always kept.
 - Coordinates are rounded from the OSM 10^-7 degree grid to 10^-6 degrees (half to even).
 - Edges with `a == b` and no interior point after simplification are dropped.
 
@@ -186,8 +186,8 @@ Packs in this repository are built from Geofabrik OSM extracts with these rules;
 
 A reader SHOULD check, and the reference reader (`python -m orpk check`) checks:
 
-1. `magic`, `version_major == 1`, `cell_size_e6 > 0`, `index_offset + 24 * cell_count <= file size`.
-2. Index entries strictly ascending by `(cell_lat, cell_lon)`; blocks contiguous from `index_offset + 24 * cell_count` to end of file; `first_junction[0] == 0` and strictly increasing.
+1. `magic`, `version_major == 1`, `cell_size_e6 > 0`; `58 + attribution_len <= file size` and `attribution` is valid UTF-8; `index_offset >= 58 + attribution_len`; `index_offset + 24 * cell_count <= file size`.
+2. Index entries strictly ascending by `(cell_lat, cell_lon)`; blocks contiguous from `index_offset + 24 * cell_count` to end of file; `first_junction[0] == 0`, strictly increasing, and the last entry's `first_junction < junction_count`.
 3. Each block inflates completely, its junction count matches the id range, and the payload has no trailing bytes.
 4. Every junction lies in the cell of its index entry.
 5. Every edge starts in its block's cell, `b < junction_count`, `d_a >= 0`, and `a == b` only with interior points.
@@ -196,4 +196,48 @@ A reader SHOULD check, and the reference reader (`python -m orpk check`) checks:
 
 ## 12. Golden files
 
-`tests/golden/` contains small packs built from synthetic OSM data by `tests/golden/make_golden.py`, each with its decoded form as JSON (`<name>.json`, produced by `python -m orpk dump`). A new reader implementation SHOULD decode every golden pack and compare against its JSON. Because DEFLATE output may differ between zlib implementations, byte comparison of rebuilt packs uses the canonical form: the header, the index entries without `offset` and `length`, and the inflated cell payloads.
+`tests/golden/` contains small packs built from synthetic OSM data by `tests/golden/make_golden.py`, each with its decoded form as JSON (`<name>.json`, produced by `python -m orpk dump`). Scenarios: `t_junction`, `oneway_pair` (forward and backward), `roundabout`, `cell_boundary` (latitude line, prime meridian, southern hemisphere, junction on a cell line), `parallel_street`, `filters` (one way per rule of section 9), `geometry` (loop edge `a == b`, a way touching itself, an end overshoot kept by simplification) and `empty`. A new reader implementation SHOULD decode every golden pack and compare against its JSON. Because DEFLATE output may differ between zlib implementations, byte comparison of rebuilt packs uses the canonical form: the header, the index entries without `offset` and `length`, and the inflated cell payloads.
+
+## 13. Release manifest `packs.json`
+
+Each release carries a `packs.json` (UTF-8 JSON) describing its packs. Every configured country is present in every release; packs not rebuilt in a run are carried over unchanged from the previous release.
+
+```json
+{
+  "release": "2026-11-02",
+  "license": "ODbL-1.0",
+  "packs": [
+    {
+      "country": "ch",
+      "name": "Switzerland",
+      "file": "ch.orpk",
+      "size": 9319398,
+      "sha256": "<64 lowercase hex digits>",
+      "osm_timestamp": "2026-11-01T21:21:36Z",
+      "format": "ORPK",
+      "format_version": "1.0",
+      "junctions": 843387,
+      "edges": 953279,
+      "source": "https://download.geofabrik.de/europe/switzerland-latest.osm.pbf"
+    }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+|---|---|---|
+| `release` | string | Release tag, `YYYY-MM-DD` (UTC build date), with `-N` appended when several releases are made on one day |
+| `license` | string | SPDX id of the data licence, always `ODbL-1.0` |
+| `packs` | array | One entry per pack, sorted by `country` |
+| `country` | string | Lowercase id from `countries.json` (`[a-z]{2,8}`, ISO 3166-1 alpha-2 where one exists) |
+| `name` | string | English display name |
+| `file` | string | Release asset name, `<country>.orpk` |
+| `size` | integer | File size in bytes |
+| `sha256` | string | SHA-256 of the file, lowercase hex |
+| `osm_timestamp` | string or null | Header `osm_timestamp` as UTC ISO 8601 `YYYY-MM-DDTHH:MM:SSZ`; null when the header holds 0 |
+| `format` | string | `ORPK` |
+| `format_version` | string | `<major>.<minor>` from the pack header |
+| `junctions`, `edges` | integer | Header counts |
+| `source` | string | URL of the extract the pack was built from |
+
+Consumers MUST verify `size` and `sha256` after download and SHOULD ignore unknown fields (new fields may be added without a format version change).
