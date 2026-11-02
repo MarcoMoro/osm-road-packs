@@ -1,0 +1,12 @@
+# Extracts and build output
+downloads/
+dist/
+*.osm.pbf
+*.osm.pbf.md5
+*.osm
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
