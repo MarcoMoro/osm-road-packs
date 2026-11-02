@@ -132,10 +132,10 @@ def notes(doc, carried_from, carried):
     if not doc["packs"]:
         sys.exit("no packs to release")
     lines = [f"Road packs built from OpenStreetMap extracts ({doc['release']}).", "",
-             "| Country | File | Size | OSM data as of | Edges | SHA-256 |", "|---|---|---|---|---|---|"]
+             "| Country | File | OSM data as of | Edges | SHA-256 |", "|---|---|---|---|---|"]
     for p in doc["packs"]:
-        lines.append(f"| {p['name']} | `{p['file']}` | {p['size'] / 1e6:.1f} MB | {p['osm_timestamp'] or 'unknown'} "
-                     f"| {p['edges']:,} | `{p['sha256']}` |")
+        lines.append(f"| {p['name']} | `{p['file']}` | {p['osm_timestamp'] or 'unknown'} | {p['edges']:,} "
+                     f"| `{p['sha256']}` |")
     if carried:
         lines += ["", f"Carried over unchanged from release {carried_from}: {', '.join(carried)}."]
     versions = ", ".join(sorted({p["format_version"] for p in doc["packs"]}))
