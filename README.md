@@ -10,7 +10,7 @@ A pack holds the drivable road network of one country as a junction graph (junct
 
 ## Packs
 
-Packs are built monthly by GitHub Actions and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13). A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete. A run fails instead of publishing a partial release (for example, a country newly added to `countries.json` must be part of the run).
+Packs are built monthly by GitHub Actions, one parallel job per country, and attached to a dated release (`YYYY-MM-DD`). Each release contains one `<country>.orpk` per configured country and a `packs.json` manifest (FORMAT.md section 13). A manual run may rebuild only some countries; the others are carried over from the previous release, so every release is complete. A run fails instead of publishing a partial release (for example, a country newly added to `countries.json` must be part of the run).
 
 | Country | Id | Source extract | Size (2026-11) |
 |---|---|---|---|
@@ -71,6 +71,8 @@ Verified 2026-11-02. Python dependencies are pinned with hashes in `requirements
 | pytest | 9.2.0 (2026-10-27) | PyPI |
 | actions/checkout | v7.0.1, `3d3c42e5aac5ba805825da76410c181273ba90b1` | GitHub release tag |
 | actions/setup-python | v7.1.0, `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` | GitHub release tag |
+| actions/upload-artifact | v7.0.2, `cf430e030ddbb5b0abf93d22962f4752f3646cd9` | GitHub release tag |
+| actions/download-artifact | v8.0.2, `9000827ccba6bdab643e8b6fd33ac0654aef8333` | GitHub release tag |
 
 ## Licence
 

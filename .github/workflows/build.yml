@@ -21,10 +21,63 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
 
-  build:
+  countries:
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 10
+    outputs:
+      ids: ${{ steps.list.outputs.ids }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.14.10"
+          cache: pip
+      - name: Install
+        run: python -m pip install --require-hashes -r requirements.txt
+      - name: List countries
+        id: list
+        env:
+          COUNTRIES: ${{ inputs.countries }}
+        run: echo "ids=$(python -m scripts.ci_build list --countries "$COUNTRIES")" >> "$GITHUB_OUTPUT"
+
+  # One job per country: downloads and builds run in parallel, a failed country can be re-run alone.
+  build:
+    needs: countries
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false  # keep the other packs, so "Re-run failed jobs" repeats only the failed country
+      matrix:
+        country: ${{ fromJSON(needs.countries.outputs.ids) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.14.10"
+          cache: pip
+      - name: Install
+        run: python -m pip install --require-hashes -r requirements.txt
+      - name: Download, build and check pack
+        env:
+          COUNTRY: ${{ matrix.country }}
+        run: python -m scripts.ci_build build --countries "$COUNTRY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: pack-${{ matrix.country }}
+          path: dist/${{ matrix.country }}.orpk
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0  # cell blocks are already deflated
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:
@@ -37,10 +90,11 @@ jobs:
           cache: pip
       - name: Install
         run: python -m pip install --require-hashes -r requirements.txt
-      - name: Download, build and check packs
-        env:
-          COUNTRIES: ${{ inputs.countries }}
-        run: python -m scripts.ci_build build --countries "$COUNTRIES"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          pattern: pack-*
+          merge-multiple: true
+          path: dist
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}

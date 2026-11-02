@@ -1,6 +1,7 @@
 """CI glue: download extracts with md5 check, build and validate packs, publish a release.
 
 Run from the repository root:
+  python -m scripts.ci_build list [--countries "ch at"]    (JSON list of validated ids; empty = all)
   python -m scripts.ci_build build [--countries "ch at"]   (empty = all in countries.json)
   python -m scripts.ci_build release                       (needs gh and GH_TOKEN)
 """
@@ -65,6 +66,10 @@ def select(countries, wanted):
         if not re.fullmatch(r"[a-z]{2,8}", cid) or cid not in countries:
             sys.exit(f"unknown country id {cid!r}; configured: {', '.join(sorted(countries))}")
     return ids
+
+
+def cmd_list(args):
+    print(json.dumps(select(load_countries(), args.countries)))
 
 
 def cmd_build(args):
@@ -148,6 +153,9 @@ def cmd_release(args):
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
+    ls = sub.add_parser("list")
+    ls.add_argument("--countries", default="")
+    ls.set_defaults(func=cmd_list)
     b = sub.add_parser("build")
     b.add_argument("--countries", default="")
     b.add_argument("--downloads", default="downloads")
