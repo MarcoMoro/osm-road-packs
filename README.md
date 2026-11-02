@@ -46,7 +46,7 @@ python -m orpk dump ch.orpk -o ch.json  # decoded JSON (large for a whole countr
 python -m orpk manifest --release 2026-11-02 --pack-dir . -o packs.json
 ```
 
-The builder reads the extract twice and keeps node locations only for road nodes, so memory stays low: on a desktop PC Switzerland takes about 40 s and 2 GB of RAM, France (5.1 GB extract) about 5 min and 4.2 GB. That fits a standard GitHub-hosted runner.
+The builder reads the extract twice and keeps node locations only for road nodes, so memory stays low: on a desktop PC Switzerland takes about 40 s and 2 GB of RAM, France (5.1 GB extract) about 5 min and 3.8 GB. That fits a standard GitHub-hosted runner.
 
 ## Tests and golden files
 
