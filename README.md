@@ -15,10 +15,10 @@ Packs are built monthly by GitHub Actions, one parallel job per country, and att
 | Country | Id | Source extract | Size (2026-11) |
 |---|---|---|---|
 | Austria | `at` | Geofabrik `europe/austria` | ~15 MB |
-| France | `fr` | Geofabrik `europe/france` | ~100 MB |
-| Germany | `de` | Geofabrik `europe/germany` | ~71 MB |
-| Italy | `it` | Geofabrik `europe/italy` | ~60 MB |
-| Liechtenstein | `li` | Geofabrik `europe/liechtenstein` | ~50 KB |
+| France | `fr` | Geofabrik `europe/france` | ~105 MB |
+| Germany | `de` | Geofabrik `europe/germany` | ~74 MB |
+| Italy | `it` | Geofabrik `europe/italy` | ~61 MB |
+| Liechtenstein | `li` | Geofabrik `europe/liechtenstein` | ~54 KB |
 | Switzerland | `ch` | Geofabrik `europe/switzerland` | ~10 MB |
 
 Countries are configured in [`countries.json`](countries.json) (id, display name, Geofabrik path).
