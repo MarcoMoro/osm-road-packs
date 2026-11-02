@@ -1,0 +1,11 @@
+{
+ "format": "ORPK",
+ "version": "1.0",
+ "osm_timestamp": 1767225600,
+ "bbox": [0, 0, 0, 0],
+ "cell_size_e6": 50000,
+ "attribution": "Data © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright",
+ "junction_count": 0,
+ "edge_count": 0,
+ "cells": []
+}
