@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320">
-  <title>osm-road-packs</title>
+  <title>OSM Road Packs</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#17594a"/>
@@ -35,6 +35,6 @@
       <circle cx="168" cy="126" r="16"/>
     </g>
   </g>
-  <text x="300" y="168" fill="#ffffff" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="64" font-weight="700">osm-road-packs</text>
-  <text x="302" y="218" fill="#d7ebe4" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="28">Compact road graphs from OpenStreetMap, one pack per country</text>
+  <text x="300" y="168" fill="#ffffff" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="64" font-weight="700">OSM Road Packs</text>
+  <text x="302" y="218" fill="#d7ebe4" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="28">Compact road graphs for each country from OpenStreetMap</text>
 </svg>

@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/banner.svg" alt="osm-road-packs" width="100%"></p>
+<p align="center"><img src="assets/banner.svg" alt="OSM Road Packs" width="100%"></p>
 
 # osm-road-packs
 
